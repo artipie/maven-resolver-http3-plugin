@@ -1,0 +1,9 @@
+{
+        https_port 7443
+        http_port 8080
+}
+
+:7443 {
+	tls ./stunnel.pem ./stunnel.pem
+	respond "Hello, world! You're using {http.request.proto}"
+}

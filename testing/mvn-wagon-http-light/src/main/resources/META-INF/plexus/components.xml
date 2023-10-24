@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component-set>
+  <components>
+    <component>
+      <role>org.apache.maven.wagon.Wagon</role>
+      <role-hint>http</role-hint>
+      <implementation>com.artipie.maven.wagon.providers.http.LightweightHttpWagon</implementation>
+      <instantiation-strategy>per-lookup</instantiation-strategy>
+      <description>LightweightHttpWagon, using JDK's HttpURLConnection.</description>
+      <isolated-realm>false</isolated-realm>
+      <requirements>
+        <requirement>
+          <role>com.artipie.maven.wagon.providers.http.LightweightHttpWagonAuthenticator</role>
+          <field-name>authenticator</field-name>
+        </requirement>
+      </requirements>
+    </component>
+    <component>
+      <role>org.apache.maven.wagon.Wagon</role>
+      <role-hint>https</role-hint>
+      <implementation>com.artipie.maven.wagon.providers.http.LightweightHttpsWagon</implementation>
+      <instantiation-strategy>per-lookup</instantiation-strategy>
+      <description>LightweightHttpsWagon, using JDK's HttpURLConnection.</description>
+      <isolated-realm>false</isolated-realm>
+      <requirements>
+        <requirement>
+          <role>com.artipie.maven.wagon.providers.http.LightweightHttpWagonAuthenticator</role>
+          <field-name>authenticator</field-name>
+        </requirement>
+      </requirements>
+    </component>
+    <component>
+      <role>com.artipie.maven.wagon.providers.http.LightweightHttpWagonAuthenticator</role>
+      <role-hint>default</role-hint>
+      <implementation>com.artipie.maven.wagon.providers.http.LightweightHttpWagonAuthenticator</implementation>
+      <description />
+      <isolated-realm>false</isolated-realm>
+    </component>
+  </components>
+</component-set>

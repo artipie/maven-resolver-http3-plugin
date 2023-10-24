@@ -1,0 +1,15 @@
+{
+	https_port 7443
+	http_port 8080
+}
+:7443 {
+	tls ./stunnel.pem ./stunnel.pem
+	reverse_proxy https://repo.maven.apache.org:443 {
+		header_up Host {http.reverse_proxy.upstream.hostport}
+	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+}
