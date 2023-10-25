@@ -30,7 +30,7 @@
   <properties>
     <Automatic-Module-Name>com.artipie.maven.resolver.transport.http3</Automatic-Module-Name>
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
-    <jettyVersion>12.0.1</jettyVersion>
+    <jettyVersion>9.4.53.v20231009</jettyVersion>
     <spotless.check.skip>true</spotless.check.skip>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
@@ -110,7 +110,7 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-http</artifactId>
-      <version>9.4.51.v20230217</version>
+      <version>9.4.53.v20231009</version>
       <scope>test</scope>
     </dependency>
     <dependency>
