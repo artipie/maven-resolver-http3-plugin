@@ -80,7 +80,7 @@ public class HttpTransporterTest {
     @Test
     public void testTransporter() throws Exception {
         final RepositorySystemSession session = newSession();
-        final RemoteRepository repository = newRepo("https://localhost:7443/maven2/");
+        final RemoteRepository repository = newRepo("https://localhost:7443/maven2");
         final HttpTransporterFactory factory = new HttpTransporterFactory();
         TransportListener listener = new TransportListener() {
             @Override

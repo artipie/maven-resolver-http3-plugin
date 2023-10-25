@@ -30,7 +30,7 @@
   <properties>
     <Automatic-Module-Name>com.artipie.maven.resolver.transport.http3</Automatic-Module-Name>
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
-    <jettyVersion>12.0.0</jettyVersion>
+    <jettyVersion>12.0.1</jettyVersion>
     <spotless.check.skip>true</spotless.check.skip>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
@@ -220,6 +220,25 @@
           <source>${maven.compiler.source}</source>
         </configuration>
       </plugin>
+      <!--package to jar with dependencies and use original name-->
+      <!--<plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <finalName>${project.build.finalName}</finalName>
+          <appendAssemblyId>false</appendAssemblyId>
+        </configuration>
+      </plugin>-->
     </plugins>
   </build>
 </project>

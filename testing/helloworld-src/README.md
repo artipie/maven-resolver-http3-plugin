@@ -18,5 +18,5 @@ See `./mvn/settings.xml`
 Trigger Maven Transport
 --------
     rm -rf $HOME/.m2/repository/commons-cli/commons-cli/1.4
-    time mvn -V -Dmaven.resolver.transport=native clean package # native or wagon, see pom.xml
+    time mvn -V -Daether.connector.https.securityMode=insecure -Dmaven.resolver.transport=native clean package # native or wagon, see pom.xml
 

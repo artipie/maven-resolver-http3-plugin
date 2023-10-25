@@ -18,18 +18,20 @@
  */
 package com.artipie.aether.transport.http3;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
+import com.artipie.aether.transport.http3.checksum.ChecksumExtractor;
+import com.artipie.aether.transport.http3.checksum.Nexus2ChecksumExtractor;
+import com.artipie.aether.transport.http3.checksum.XChecksumChecksumExtractor;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.spi.connector.transport.Transporter;
 import org.eclipse.aether.spi.connector.transport.TransporterFactory;
 import org.eclipse.aether.transfer.NoTransporterException;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static java.util.Objects.requireNonNull;
 
@@ -39,16 +41,16 @@ import static java.util.Objects.requireNonNull;
  */
 @Named("http")
 public final class HttpTransporterFactory implements TransporterFactory {
-    private static Map<String, Object> getManuallyCreatedExtractors() {
-        HashMap<String, Object> map = new HashMap<>(); //TODO:
-        //map.put(Nexus2ChecksumExtractor.NAME, new Nexus2ChecksumExtractor());
-        //map.put(XChecksumChecksumExtractor.NAME, new XChecksumChecksumExtractor());
+    private static Map<String, ChecksumExtractor> getManuallyCreatedExtractors() {
+        HashMap<String, ChecksumExtractor> map = new HashMap<>(); //TODO:
+        map.put(Nexus2ChecksumExtractor.NAME, new Nexus2ChecksumExtractor());
+        map.put(XChecksumChecksumExtractor.NAME, new XChecksumChecksumExtractor());
         return Collections.unmodifiableMap(map);
     }
 
     private float priority = 5.0f;
 
-    private final Map<String, Object> extractors;
+    private final Map<String, ChecksumExtractor> extractors;
 
     /**
      * Ctor for ServiceLocator.
@@ -64,7 +66,7 @@ public final class HttpTransporterFactory implements TransporterFactory {
      * will occur.
      */
     @Inject
-    public HttpTransporterFactory(Map<String, Object> extractors) {
+    public HttpTransporterFactory(Map<String, ChecksumExtractor> extractors) {
         this.extractors = requireNonNull(extractors);
     }
 
