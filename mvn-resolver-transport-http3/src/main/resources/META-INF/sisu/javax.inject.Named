@@ -1,0 +1,3 @@
+com.artipie.aether.transport.http3.HttpTransporterFactory
+com.artipie.aether.transport.http3.Nexus2ChecksumExtractor
+com.artipie.aether.transport.http3.XChecksumChecksumExtractor

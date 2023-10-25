@@ -1,0 +1,14 @@
+<settings>
+    <mirrors>
+        <mirror>
+            <id>http3-test-repo-caddy</id>
+            <url>https://localhost:7443/maven2/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>
+        <!--<mirror>
+            <id>http3-test-repo-nghttpx</id>
+            <url>https://localhost:9443/maven2/</url>
+            <mirrorOf>central</mirrorOf>
+        </mirror>-->
+    </mirrors>
+</settings>
