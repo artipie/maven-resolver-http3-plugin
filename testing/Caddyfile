@@ -12,4 +12,7 @@
 		format console
 		level info
 	}
+    #basicauth /* {
+    #    demo $2a$14$q3UGLjB66ZBZmfk5ISa0/u1U6Hznq59M/8hQZ/ualOxiGfY8BLTQS
+    #}
 }

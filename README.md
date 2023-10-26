@@ -1,4 +1,8 @@
-## Maven http3 experiments
+## Maven http3 experimental plugin
+
+### HTTP3 new experimental plugin
+
+- `mvn-resolver-transport-http3` uses Jetty HTTP3 client library and Maven Artifact Resolver API. Supports Maven 3.9+
 
 ### Maven transport APIs
 
@@ -7,20 +11,16 @@
 
 ### HTTP1.x basic plugins
 
-These are distilled versions of standard maven http 1.x plugins with minimized dependencies,
+These are distilled versions of the standard maven http 1.x plugins with minimized dependencies,
 minor code changes and debug `stderr` "logging". They are useful as reference starting point for 
 new maven extensions and for maven testing/debugging.
 
 - `testing/mvn-wagon-http-light` uses Maven Wagon transport.
 - `testing/mvn-resolver-transport-http` uses Maven Artifact Resolver transport.
 
-### HTTP3 new experimental plugin
-
-- `mvn-resolver-transport-http3` uses Jetty HTTP3 client library and Maven Artifact Resolver API.
-
 ### HTTP3 demo/testing
 
-For building and testing http3 tools, see `http3.md`
+For building and testing http3 tools, see `testing/http3.md`
 
 #### nghttp3 server 
 
@@ -37,11 +37,17 @@ For now `Caddy` http3 server is used for testing plugin.
 
 #### Testing plugin
 
+See also:
+* `testing/helloworld-src/README.md`
+* `mvn-resolver-transport-http3/README.md`
+
 ```shell
 cd testing
 caddy run
-curl -kv --http3 https://localhost.org:7433/
-cd helloworld-src
+
+curl -kv --http3-only https://localhost:7443
+
+cd testing/helloworld-src
 rm -rf $HOME/.m2/repository/commons-cli/commons-cli/1.4
 time mvn clean package -Daether.connector.https.securityMode=insecure
 ```
