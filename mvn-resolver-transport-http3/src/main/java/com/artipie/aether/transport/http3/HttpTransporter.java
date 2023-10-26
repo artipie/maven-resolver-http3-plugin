@@ -28,10 +28,7 @@ import org.eclipse.aether.spi.connector.transport.*;
 import org.eclipse.aether.transfer.NoTransporterException;
 import org.eclipse.aether.util.ConfigUtils;
 import org.eclipse.aether.util.FileUtils;
-import org.eclipse.jetty.client.BasicAuthentication;
-import org.eclipse.jetty.client.ContentResponse;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.HttpResponseException;
+import org.eclipse.jetty.client.*;
 import org.eclipse.jetty.http.*;
 import org.eclipse.jetty.http3.client.HTTP3Client;
 import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
@@ -197,7 +194,7 @@ final class HttpTransporter extends AbstractTransporter {
 
         if (this.baseUri.getUserInfo() != null) {
             this.authInfo = this.baseUri.getUserInfo().split(":");
-        } else if (this.repoAuthContext.get(AuthenticationContext.USERNAME) != null) {
+        } else if (this.repoAuthContext != null && this.repoAuthContext.get(AuthenticationContext.USERNAME) != null) {
             final String password = this.repoAuthContext.get(AuthenticationContext.PASSWORD);
             this.authInfo = new String[] {
                 this.repoAuthContext.get(AuthenticationContext.USERNAME),
@@ -291,8 +288,7 @@ final class HttpTransporter extends AbstractTransporter {
         AuthenticationContext.close(proxyAuthContext);
     }
 
-    private ContentResponse makeRequest(HttpMethod method, TransportTask task)
-        throws ExecutionException, InterruptedException, TimeoutException, MalformedURLException {
+    private ContentResponse makeRequest(HttpMethod method, TransportTask task) throws MalformedURLException {
         final String url = new URL(this.baseUri.toURL(), task.getLocation().toString()).toString();
         System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
 
@@ -301,13 +297,19 @@ final class HttpTransporter extends AbstractTransporter {
                 new BasicAuthentication.BasicResult(this.baseUri, this.authInfo[0], this.authInfo[1])
             );
         }
-        final ContentResponse response = this.client.newRequest(url).method(method).headers(httpFields -> {
-            System.err.printf("\tCustom HEADER HttpTransporter.makeRequest() called! fields: %d; URL: %s%n", httpFields.size(), url);
-            final Object token = this.state.getUserToken();
-            if (token != null) {
-                httpFields.add(LocalState.USER_TOKEN, token.toString());
-            }
-        }).send();
+        final Request request = this.client.newRequest(url);
+        final ContentResponse response;
+        try {
+            response = request.method(method).headers(httpFields -> {
+                System.err.printf("\tCustom HEADER HttpTransporter.makeRequest() called! fields: %d; URL: %s%n", httpFields.size(), url);
+                final Object token = this.state.getUserToken();
+                if (token != null) {
+                    httpFields.add(LocalState.USER_TOKEN, token.toString());
+                }
+            }).send();
+        } catch (Exception ex) {
+            throw new HttpRequestException(ex.getMessage(), request);
+        }
         if (response.getStatus() >= 300) {
             throw new HttpResponseException(Integer.toString(response.getStatus()), response);
         }
