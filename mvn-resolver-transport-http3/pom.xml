@@ -92,7 +92,7 @@
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-test-util</artifactId>
-      <version>1.9.16-SNAPSHOT</version>
+      <version>1.9.16</version>
       <scope>test</scope>
     </dependency>
     <dependency>
