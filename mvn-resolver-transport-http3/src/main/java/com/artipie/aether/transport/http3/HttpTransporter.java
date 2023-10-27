@@ -234,25 +234,25 @@ final class HttpTransporter extends AbstractTransporter {
 
     @Override
     protected void implPeek(PeekTask task) throws Exception {
-        this.makeRequest(HttpMethod.HEAD, task);
+        this.makeRequest(HttpMethod.HEAD, task, null);
     }
 
     @Override
     protected void implGet(GetTask task) throws Exception {
-        ContentResponse response = this.makeRequest(HttpMethod.GET, task);
-
+        ContentResponse response = this.makeRequest(HttpMethod.GET, task, null);
         final boolean resume = false;
         final File dataFile = task.getDataFile();
+        final byte[] content = response.getContent();
         if (dataFile == null) {
-            try (final InputStream is = new ByteArrayInputStream(response.getContent())) {
-                utilGet(task, is, true, response.getContent().length, resume);
+            try (final InputStream is = new ByteArrayInputStream(content)) {
+                utilGet(task, is, true, content.length, resume);
                 extractChecksums(response, task);
             }
         } else {
             try (FileUtils.CollocatedTempFile tempFile = FileUtils.newTempFile(dataFile.toPath())) {
                 task.setDataFile(tempFile.getPath().toFile());
-                try (final InputStream is = new ByteArrayInputStream(response.getContent())) {
-                    utilGet(task, is, true, response.getContent().length, resume);
+                try (final InputStream is = new ByteArrayInputStream(content)) {
+                    utilGet(task, is, true, content.length, resume);
                 }
                 tempFile.move();
             } finally {
@@ -273,7 +273,9 @@ final class HttpTransporter extends AbstractTransporter {
 
     @Override
     protected void implPut(PutTask task) throws Exception {
-        this.makeRequest(HttpMethod.PUT, task);
+        try (final InputStream stream = task.newInputStream()) {
+            this.makeRequest(HttpMethod.PUT, task, new InputStreamRequestContent(stream));
+        }
     }
 
     @Override
@@ -288,10 +290,9 @@ final class HttpTransporter extends AbstractTransporter {
         AuthenticationContext.close(proxyAuthContext);
     }
 
-    private ContentResponse makeRequest(HttpMethod method, TransportTask task) throws MalformedURLException {
+    private ContentResponse makeRequest(HttpMethod method, TransportTask task, Request.Content bodyContent) throws MalformedURLException {
         final String url = new URL(this.baseUri.toURL(), task.getLocation().toString()).toString();
         System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
-
         if (this.authInfo != null) {
             this.client.getAuthenticationStore().addAuthenticationResult(
                 new BasicAuthentication.BasicResult(this.baseUri, this.authInfo[0], this.authInfo[1])
@@ -306,7 +307,7 @@ final class HttpTransporter extends AbstractTransporter {
                 if (token != null) {
                     httpFields.add(LocalState.USER_TOKEN, token.toString());
                 }
-            }).send();
+            }).body(bodyContent).send();
         } catch (Exception ex) {
             throw new HttpRequestException(ex.getMessage(), request);
         }
