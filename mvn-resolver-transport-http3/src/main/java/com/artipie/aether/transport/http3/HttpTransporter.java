@@ -19,7 +19,6 @@
 package com.artipie.aether.transport.http3;
 
 import com.artipie.aether.transport.http3.checksum.ChecksumExtractor;
-import com.artipie.aether.transport.http3.state.LocalState;
 import org.eclipse.aether.ConfigurationProperties;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.repository.AuthenticationContext;
@@ -34,7 +33,6 @@ import org.eclipse.jetty.http3.client.HTTP3Client;
 import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
@@ -43,10 +41,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
 import static java.util.Objects.requireNonNull;
 
@@ -54,27 +51,6 @@ import static java.util.Objects.requireNonNull;
  * A transporter for HTTP/HTTPS.
  */
 final class HttpTransporter extends AbstractTransporter {
-
-    static final String BIND_ADDRESS = "aether.connector.bind.address";
-
-    static final String SUPPORT_WEBDAV = "aether.connector.http.supportWebDav";
-
-    static final String PREEMPTIVE_PUT_AUTH = "aether.connector.http.preemptivePutAuth";
-
-    static final String USE_SYSTEM_PROPERTIES = "aether.connector.http.useSystemProperties";
-
-    static final String HTTP_RETRY_HANDLER_NAME = "aether.connector.http.retryHandler.name";
-
-    private static final String HTTP_RETRY_HANDLER_NAME_STANDARD = "standard";
-
-    private static final String HTTP_RETRY_HANDLER_NAME_DEFAULT = "default";
-
-    static final String HTTP_RETRY_HANDLER_REQUEST_SENT_ENABLED =
-            "aether.connector.http.retryHandler.requestSentEnabled";
-
-    private static final Pattern CONTENT_RANGE_PATTERN =
-            Pattern.compile("\\s*bytes\\s+([0-9]+)\\s*-\\s*([0-9]+)\\s*/.*");
-
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpTransporter.class);
 
     private final Map<String, ChecksumExtractor> checksumExtractors;
@@ -87,16 +63,7 @@ final class HttpTransporter extends AbstractTransporter {
 
     private final HttpClient client;
 
-    private final LocalState state;
-
     private String[] authInfo = null;
-
-    /*
-
-    private final Map<?, ?> headers;
-
-    private final boolean supportWebDav;
-    */
 
     HttpTransporter(
             Map<String, ChecksumExtractor> checksumExtractors,
@@ -187,8 +154,6 @@ final class HttpTransporter extends AbstractTransporter {
             throw new NoTransporterException(repository, e.getMessage(), e);
         }
 
-        this.state = new LocalState(session, repository);
-
         this.repoAuthContext = AuthenticationContext.forRepository(session, repository);
         this.proxyAuthContext = AuthenticationContext.forProxy(session, repository);
 
@@ -221,7 +186,6 @@ final class HttpTransporter extends AbstractTransporter {
         this.client.start();
         h3Client.getClientConnector().getSslContextFactory()
             .setTrustAll(httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE));
-        //h3Client.getClientConnector().getSslContextFactory().setTrustAll(true);
     }
 
     @Override
@@ -260,10 +224,12 @@ final class HttpTransporter extends AbstractTransporter {
             }
         }
         if (task.getDataFile() != null) {
-            final String lastModifiedHeader =
-                response.getHeaders().get(HttpHeader.LAST_MODIFIED);
+            final String lastModifiedHeader = response.getHeaders().get(HttpHeader.LAST_MODIFIED);
             if (lastModifiedHeader != null) {
-                Date lastModified = new Date(Date.parse(lastModifiedHeader));
+                final DateFormat lastModifiedFormat = new SimpleDateFormat(
+                    "EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US
+                );
+                final Date lastModified = lastModifiedFormat.parse(lastModifiedHeader);
                 Files.setLastModifiedTime(
                     task.getDataFile().toPath(), FileTime.fromMillis(lastModified.getTime())
                 );
@@ -291,7 +257,7 @@ final class HttpTransporter extends AbstractTransporter {
     }
 
     private ContentResponse makeRequest(HttpMethod method, TransportTask task, Request.Content bodyContent) throws MalformedURLException {
-        final String url = new URL(this.baseUri.toURL(), task.getLocation().toString()).toString();
+        final String url = this.baseUri.resolve(task.getLocation()).toString();
         System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
         if (this.authInfo != null) {
             this.client.getAuthenticationStore().addAuthenticationResult(
@@ -301,22 +267,12 @@ final class HttpTransporter extends AbstractTransporter {
         final Request request = this.client.newRequest(url);
         final ContentResponse response;
         try {
-            response = request.method(method).headers(httpFields -> {
-                System.err.printf("\tCustom HEADER HttpTransporter.makeRequest() called! fields: %d; URL: %s%n", httpFields.size(), url);
-                final Object token = this.state.getUserToken();
-                if (token != null) {
-                    httpFields.add(LocalState.USER_TOKEN, token.toString());
-                }
-            }).body(bodyContent).send();
+            response = request.method(method).body(bodyContent).send();
         } catch (Exception ex) {
             throw new HttpRequestException(ex.getMessage(), request);
         }
         if (response.getStatus() >= 300) {
             throw new HttpResponseException(Integer.toString(response.getStatus()), response);
-        }
-        final HttpField field = response.getHeaders().getField(LocalState.USER_TOKEN); //TODO: add test on tokens!?
-        if (field != null && field.getValue() != null && !field.getValue().trim().isEmpty()) {
-            this.state.setUserToken(field.getValue());
         }
         return response;
     }

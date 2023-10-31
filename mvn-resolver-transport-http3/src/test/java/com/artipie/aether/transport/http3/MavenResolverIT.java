@@ -22,7 +22,6 @@ import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.wait.strategy.ShellStrategy;
-import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -110,7 +109,7 @@ public class MavenResolverIT {
     }
 
     @BeforeClass
-    public static void prepare() throws IOException, InterruptedException {
+    public static void prepare() {
         try {
             caddy = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
                 .withReuse(false)
