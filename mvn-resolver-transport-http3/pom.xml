@@ -32,8 +32,9 @@
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
     <jettyVersion>12.0.1</jettyVersion>
     <spotless.check.skip>true</spotless.check.skip>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <!-- Jetty http3 is JDK17+ -->
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
   </properties>
 
   <dependencies>
