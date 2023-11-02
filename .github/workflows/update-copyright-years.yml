@@ -1,0 +1,23 @@
+name: Update copyright year
+
+on:
+  schedule:
+    - cron: '0 1 1 * *' # Runs at 01:00 UTC on the 1st of every month
+
+jobs:
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: FantasticFiasco/action-update-license-year@v2
+        with:
+          token: ${{ secrets.LICENSE_SECRET }}
+          path: | #add new path with glob pattern https://www.npmjs.com/package/glob
+            **/LICENSE*
+            **/*.java
+            **/*.rb
+            **/*.xml
+            .release/*
+          commitTitle: "chore: update license year"
