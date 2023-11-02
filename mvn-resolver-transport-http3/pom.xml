@@ -92,7 +92,7 @@
     <dependency>
       <groupId>org.apache.maven.resolver</groupId>
       <artifactId>maven-resolver-test-util</artifactId>
-      <version>1.9.16-SNAPSHOT</version>
+      <version>1.9.16</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -170,6 +170,12 @@
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-io</artifactId>
       <version>${jettyVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>1.18.3</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

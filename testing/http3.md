@@ -90,6 +90,9 @@ sudo ldconfig
                     format console
                     level info
             }
+        #basicauth /* { # basic auth; demo/demo
+        #    demo $2a$14$q3UGLjB66ZBZmfk5ISa0/u1U6Hznq59M/8hQZ/ualOxiGfY8BLTQS
+        #}
     }
     ```
 4. Run Caddy server:
@@ -107,8 +110,19 @@ nghttpx $CERT $CERT --backend=localhost,8080 --frontend="localhost,9443;quic"
 # http3 proxy server to https://repo.maven.apache.org:
 nghttpx $CERT $CERT -L INFO -k --host-rewrite --backend="repo.maven.apache.org,443;/;tls" --frontend="localhost,9443;quic"
 # Testing client:
-curl -kv --http3 https://nghttp2.org:4433/
-curl -kv --http3 https://localhost.org:9433/
+curl -kv --http3-only https://nghttp2.org:4433/
+curl -kv --http3-only https://localhost.org:9433/
+curl -kv --http3-only "https://localhost:7443/" -u demo:demo # for caddy auth test
+curl -kv --http3-only "https://localhost:7443/" -H 'Authorization: Basic ZGVtbzpkZW1v'
+curl -kv --http3-only "https://demo:demo@localhost:7443/"
 time mvn clean package -Daether.connector.https.securityMode=insecure
 time mvn -X -e clean package -Dmaven.resolver.transport=native -Daether.connector.https.securityMode=insecure # for full logs
+```
+
+
+### Docker test
+
+```
+docker run -v $PWD/Caddyfile.docker:/etc/caddy/Caddyfile -v $PWD/stunnel.pem:/etc/caddy/stunnel.pem -p 7443:7443/udp caddy
+curl --http3-only -kv https://demo:demo@localhost:7443/maven2
 ```
