@@ -30,11 +30,6 @@ jobs:
         run: |
           cd mvn-resolver-transport-http3
           mvn -B verify
-  pdd-linter:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: g4s8/pdd-action@master
   xcop-linter:
     runs-on: ubuntu-latest
     steps:
