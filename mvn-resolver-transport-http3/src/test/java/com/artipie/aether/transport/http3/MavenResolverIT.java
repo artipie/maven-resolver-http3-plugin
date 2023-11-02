@@ -8,7 +8,6 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.spi.connector.transport.GetTask;
 import org.eclipse.aether.spi.connector.transport.TransportListener;
 import org.eclipse.aether.spi.connector.transport.Transporter;
-import org.eclipse.aether.transfer.TransferCancelledException;
 import org.eclipse.jetty.client.ContentResponse;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequestException;
@@ -23,7 +22,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.wait.strategy.ShellStrategy;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import static org.junit.Assert.*;
 
@@ -32,63 +30,68 @@ import static org.junit.Assert.*;
  */
 public class MavenResolverIT {
 
-    private static GenericContainer<?> caddy;
-    private static GenericContainer<?> caddyAuth;
+    private static final String REMOTE_PATH = "commons-cli/commons-cli/1.4/commons-cli-1.4.pom";
+    private static final String LOCAL_PATH = "commons-cli-1.4.pom";
+
+    private static GenericContainer<?> caddyProxy;
+    private static GenericContainer<?> caddyProxyAuth;
 
     @Test
     public void testTransporterAuth() throws Exception {
         final byte[] data = testTransporter("https://demo:demo@localhost:7444/maven2");
         assertNotEquals(null, data);
-        System.err.println(new String(data, StandardCharsets.UTF_8));
-        assertTrue(data.length > 0);
+        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        assertArrayEquals(local, data);
     }
 
-    @Test(expected = HttpResponseException.class)
-    public void testTransporterAuthFail() throws Exception {
-        final byte[] data = testTransporter("https://demo1:demo1@localhost:7444/maven2");
-        assertNull(data);
+    @Test
+    public void testTransporterAuthFail() {
+        HttpResponseException exception = assertThrows(
+            "Invalid exception thrown", HttpResponseException.class,
+            () -> testTransporter("https://demo1:demo1@localhost:7444/maven2")
+        );
+        assertEquals("401", exception.getMessage());
     }
 
-    @Test(expected = HttpResponseException.class)
-    public void testTransporterAnonAuthFail() throws Exception {
-        testTransporter("https://localhost:7444/maven2");
+    @Test
+    public void testTransporterAnonAuthFail() {
+        HttpResponseException exception = assertThrows(
+            "Invalid exception thrown", HttpResponseException.class,
+            () -> testTransporter("https://localhost:7444/maven2")
+        );
+        assertEquals("401", exception.getMessage());
     }
 
     @Test
     public void testTransporterAnon() throws Exception {
         final byte[] data = testTransporter("https://localhost:7443/maven2");
         assertNotEquals(null, data);
-        System.err.println(new String(data, StandardCharsets.UTF_8));
-        assertTrue(data.length > 0);
-    }
+        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        assertArrayEquals(local, data);    }
 
     @Test
     public void testAnonTransporterSuccess() throws Exception {
         final byte[] data = testTransporter("https://demo:demo@localhost:7443/maven2");
         assertNotNull(data);
-        assertTrue(data.length > 0);
+        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        assertArrayEquals(local, data);
     }
 
-    @Test(expected = HttpRequestException.class)
-    public void testTransporterInvalidUrl() throws Exception {
-        testTransporter("https://localhost:7445/maven2");
+    @Test()
+    public void testTransporterInvalidUrl() {
+        HttpRequestException exception = assertThrows(
+            "Invalid exception thrown", HttpRequestException.class,
+            () -> testTransporter("https://localhost:7445/maven2")
+        );
+        assertEquals("java.net.SocketTimeoutException: connect timeout", exception.getMessage());
     }
 
     private byte[] testTransporter(final String repo) throws Exception {
         final RepositorySystemSession session = newSession();
         final RemoteRepository repository = newRepo(repo);
         final HttpTransporterFactory factory = new HttpTransporterFactory();
-        TransportListener listener = new TransportListener() {
-            @Override
-            public void transportStarted(long dataOffset, long dataLength) throws TransferCancelledException {
-                super.transportStarted(dataOffset, dataLength);
-            }
-            @Override
-            public void transportProgressed(ByteBuffer data) throws TransferCancelledException {
-                super.transportProgressed(data);
-            }
-        };
-        final GetTask task = new GetTask(URI.create("commons-cli/commons-cli/1.4/commons-cli-1.4.pom")).setListener(listener);
+        final GetTask task = new GetTask(URI.create(REMOTE_PATH))
+            .setListener(new TransportListener() {});
         try (final Transporter transporter = factory.newInstance(session, repository)) {
             transporter.get(task);
         }
@@ -111,36 +114,36 @@ public class MavenResolverIT {
     @BeforeClass
     public static void prepare() {
         try {
-            caddy = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
+            caddyProxy = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
                 .withReuse(false)
-                .withFileSystemBind("src/test/resources/Caddyfile.docker", "/etc/caddy/Caddyfile")
+                .withFileSystemBind("src/test/resources/Caddyfile.proxy", "/etc/caddy/Caddyfile")
                 .withFileSystemBind("src/test/resources/stunnel.pem", "/etc/caddy/stunnel.pem")
                 .waitingFor(new ShellStrategy().withCommand("nc -u -z localhost 7443"))
                 .withFixedExposedPort(7443, 7443, InternetProtocol.UDP)
                 .withFixedExposedPort(8080, 8080, InternetProtocol.TCP)
                 .withAccessToHost(true);
 
-            caddyAuth = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
+            caddyProxyAuth = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
                 .withReuse(false)
-                .withFileSystemBind("src/test/resources/Caddyfile.auth.docker", "/etc/caddy/Caddyfile")
+                .withFileSystemBind("src/test/resources/Caddyfile.proxy.auth", "/etc/caddy/Caddyfile")
                 .withFileSystemBind("src/test/resources/stunnel.pem", "/etc/caddy/stunnel.pem")
                 .waitingFor(new ShellStrategy().withCommand("nc -u -z localhost 7444"))
                 .withFixedExposedPort(7444, 7444, InternetProtocol.UDP)
                 .withAccessToHost(true);
-            caddy.start();
-            caddyAuth.start();
+            caddyProxy.start();
+            caddyProxyAuth.start();
         }
         catch (Exception ex) {
-            System.err.println(caddy.getLogs());
-            System.err.println(caddyAuth.getLogs());
+            System.err.println(caddyProxy.getLogs());
+            System.err.println(caddyProxyAuth.getLogs());
             throw ex;
         }
     }
 
     @AfterClass
     public static void finish() {
-        caddy.stop();
-        caddyAuth.stop();
+        caddyProxy.stop();
+        caddyProxyAuth.stop();
     }
 
     private static DefaultRepositorySystemSession newSession() {

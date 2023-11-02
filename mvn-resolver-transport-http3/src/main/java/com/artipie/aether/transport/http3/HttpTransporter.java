@@ -38,7 +38,6 @@ import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
@@ -70,75 +69,8 @@ final class HttpTransporter extends AbstractTransporter {
             RemoteRepository repository,
             RepositorySystemSession session)
         throws Exception {
-        System.err.println("Custom HttpTransporter created!!!");
 
-        // Checking http3 support is available (loaded)
-        PreEncodedHttpField f = new PreEncodedHttpField("Host", "localhost");
-        for (final HttpVersion v: HttpVersion.values()) {
-            int len = 0;
-            try {
-               len = f.getEncodedLength(v);
-            } catch (Exception ex) {
-                len = -1;
-            }
-            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
-        }
-
-        // TODO: Force http3 initialization (HACK!)
-        final ServiceLoader<HttpFieldPreEncoder> load = ServiceLoader.load(HttpFieldPreEncoder.class,PreEncodedHttpField.class.getClassLoader());
-        /*ServiceLoader<HttpFieldPreEncoder> load = null;
-        ClassLoader saveCl = Thread.currentThread().getContextClassLoader();
-        try {
-            Thread.currentThread().setContextClassLoader(PreEncodedHttpField.class.getClassLoader());
-            load = ServiceLoader.load(HttpFieldPreEncoder.class);
-        }finally {
-            Thread.currentThread().setContextClassLoader(saveCl);
-        }*/
-
-        /*System.err.println("\tCustom HttpTransporter ServiceLoader=" + load);
-        Stream<ServiceLoader.Provider<HttpFieldPreEncoder>> providerStream = TypeUtil.serviceProviderStream(load);
-        System.err.println("\tCustom HttpTransporter Stream<ServiceLoader.Provider<HttpFieldPreEncoder>> = " + providerStream);
-        ArrayList<Integer> calls = new ArrayList<>();
-        providerStream.forEach((provider) -> {
-            try {
-                calls.add(calls.size());
-                HttpFieldPreEncoder encoder = (HttpFieldPreEncoder)provider.get();
-                HttpVersion v = encoder.getHttpVersion();
-                System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder: encoder=" + encoder + "; ver=" + v);
-            } catch (RuntimeException | Error var3) {
-                System.err.println("\tCustom HttpTransporter Error processing encoder: " + provider.get());
-            }
-        });
-        System.err.println("\tCustom HttpTransporter providerStream calls=" + calls.size());*/
-
-        HashMap<HttpVersion, HttpFieldPreEncoder> encoders = new HashMap<>();
-        for (HttpFieldPreEncoder val: load) {
-            System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder val=" + val);
-            encoders.put(val.getHttpVersion(), val);
-        }
-
-        Field ff = PreEncodedHttpField.class.getDeclaredField("__encoders");
-        ff.setAccessible(true);
-        String fldDescr = ff.get(null).toString();
-        System.err.println("\tCustom HttpTransporter __encoders BEFORE: " + fldDescr + "; this=" + this);
-        @SuppressWarnings("unchecked") EnumMap<HttpVersion, HttpFieldPreEncoder> obj = (EnumMap<HttpVersion, HttpFieldPreEncoder>)ff.get(null);
-        if (encoders.containsKey(HttpVersion.HTTP_3) && !obj.containsKey(HttpVersion.HTTP_3)) {
-            System.err.println("\tCustom HttpTransporter adding to __encoders: " + obj + "; this=" + this);
-            obj.put(HttpVersion.HTTP_3, encoders.get(HttpVersion.HTTP_3));
-        }
-        System.err.println("\tCustom HttpTransporter __encoders AFTER: " + obj + "; this=" + this);
-
-        // Rechecking http3 support is available (loaded)
-        f = new PreEncodedHttpField("Host", "localhost");
-        for (final HttpVersion v: HttpVersion.values()) {
-            int len = 0;
-            try {
-                len = f.getEncodedLength(v);
-            } catch (Exception ex) {
-                len = -1;
-            }
-            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
-        }
+        forceLoadHttp3Support();
 
         if (!"http".equalsIgnoreCase(repository.getProtocol()) && !"https".equalsIgnoreCase(repository.getProtocol())) {
             throw new NoTransporterException(repository);
@@ -284,6 +216,85 @@ final class HttpTransporter extends AbstractTransporter {
                 checksums.forEach(task::setChecksum);
                 return;
             }
+        }
+    }
+
+    /**
+     * TOOD: For unknown reason when running inside Maven, HttpFieldPreEncoder for HTTP3 is missing.
+     * It is not available in Jetty static initializer when that library is loaded by Maven.
+     * However, it is available the moment later.
+     * Here I use reflection to force-register missing HttpFieldPreEncoder for HTTP3.
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    private void forceLoadHttp3Support() throws NoSuchFieldException, IllegalAccessException {
+        System.err.println("Custom HttpTransporter.forceLoadHttp3Support() called!");
+        // Checking http3 support is available (loaded)
+        PreEncodedHttpField f = new PreEncodedHttpField("Host", "localhost");
+        for (final HttpVersion v: HttpVersion.values()) {
+            int len = 0;
+            try {
+                len = f.getEncodedLength(v);
+            } catch (Exception ex) {
+                len = -1;
+            }
+            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
+        }
+
+        // TODO: Force http3 initialization (HACK!)
+        final ServiceLoader<HttpFieldPreEncoder> load = ServiceLoader.load(HttpFieldPreEncoder.class,PreEncodedHttpField.class.getClassLoader());
+        /*ServiceLoader<HttpFieldPreEncoder> load = null;
+        ClassLoader saveCl = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(PreEncodedHttpField.class.getClassLoader());
+            load = ServiceLoader.load(HttpFieldPreEncoder.class);
+        }finally {
+            Thread.currentThread().setContextClassLoader(saveCl);
+        }*/
+
+        /*System.err.println("\tCustom HttpTransporter ServiceLoader=" + load);
+        Stream<ServiceLoader.Provider<HttpFieldPreEncoder>> providerStream = TypeUtil.serviceProviderStream(load);
+        System.err.println("\tCustom HttpTransporter Stream<ServiceLoader.Provider<HttpFieldPreEncoder>> = " + providerStream);
+        ArrayList<Integer> calls = new ArrayList<>();
+        providerStream.forEach((provider) -> {
+            try {
+                calls.add(calls.size());
+                HttpFieldPreEncoder encoder = (HttpFieldPreEncoder)provider.get();
+                HttpVersion v = encoder.getHttpVersion();
+                System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder: encoder=" + encoder + "; ver=" + v);
+            } catch (RuntimeException | Error var3) {
+                System.err.println("\tCustom HttpTransporter Error processing encoder: " + provider.get());
+            }
+        });
+        System.err.println("\tCustom HttpTransporter providerStream calls=" + calls.size());*/
+
+        HashMap<HttpVersion, HttpFieldPreEncoder> encoders = new HashMap<>();
+        for (HttpFieldPreEncoder val: load) {
+            System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder val=" + val);
+            encoders.put(val.getHttpVersion(), val);
+        }
+
+        Field ff = PreEncodedHttpField.class.getDeclaredField("__encoders");
+        ff.setAccessible(true);
+        String fldDescr = ff.get(null).toString();
+        System.err.println("\tCustom HttpTransporter __encoders BEFORE: " + fldDescr + "; this=" + this);
+        @SuppressWarnings("unchecked") EnumMap<HttpVersion, HttpFieldPreEncoder> obj = (EnumMap<HttpVersion, HttpFieldPreEncoder>)ff.get(null);
+        if (encoders.containsKey(HttpVersion.HTTP_3) && !obj.containsKey(HttpVersion.HTTP_3)) {
+            System.err.println("\tCustom HttpTransporter adding to __encoders: " + obj + "; this=" + this);
+            obj.put(HttpVersion.HTTP_3, encoders.get(HttpVersion.HTTP_3));
+        }
+        System.err.println("\tCustom HttpTransporter __encoders AFTER: " + obj + "; this=" + this);
+
+        // Rechecking http3 support is available (loaded)
+        f = new PreEncodedHttpField("Host", "localhost");
+        for (final HttpVersion v: HttpVersion.values()) {
+            int len = 0;
+            try {
+                len = f.getEncodedLength(v);
+            } catch (Exception ex) {
+                len = -1;
+            }
+            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
         }
     }
 }
