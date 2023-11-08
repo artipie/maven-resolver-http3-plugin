@@ -1,5 +1,4 @@
 {
-	https_port 7443
 	http_port 8080
 }
 :7443 {
@@ -7,6 +6,54 @@
 	reverse_proxy https://repo.maven.apache.org:443 {
 		header_up Host {http.reverse_proxy.upstream.hostport}
 	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+}
+:7444 {
+	tls /etc/caddy/stunnel.pem /etc/caddy/stunnel.pem
+	reverse_proxy https://repo.maven.apache.org:443 {
+		header_up Host {http.reverse_proxy.upstream.hostport}
+	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+    basicauth /* {
+        demo $2a$14$q3UGLjB66ZBZmfk5ISa0/u1U6Hznq59M/8hQZ/ualOxiGfY8BLTQS
+    }
+}
+:7445 {
+	tls /etc/caddy/stunnel.pem /etc/caddy/stunnel.pem
+	reverse_proxy http://localhost:8081 {
+		header_up Host {http.reverse_proxy.upstream.hostport}
+	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+}
+:7446 {
+	tls /etc/caddy/stunnel.pem /etc/caddy/stunnel.pem
+	reverse_proxy http://localhost:8081 {
+		header_up Host {http.reverse_proxy.upstream.hostport}
+	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+    basicauth /* {
+        demo $2a$14$q3UGLjB66ZBZmfk5ISa0/u1U6Hznq59M/8hQZ/ualOxiGfY8BLTQS
+    }
+}
+:7447 {
+	tls /etc/caddy/stunnel.pem /etc/caddy/stunnel.pem
+	respond "Hello! You're using {http.request.proto}. BODY: {http.request.body}"
 	log {
 		output stdout
 		format console

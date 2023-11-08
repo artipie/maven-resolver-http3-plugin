@@ -38,6 +38,8 @@ import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
@@ -172,7 +174,9 @@ final class HttpTransporter extends AbstractTransporter {
     @Override
     protected void implPut(PutTask task) throws Exception {
         try (final InputStream stream = task.newInputStream()) {
-            this.makeRequest(HttpMethod.PUT, task, new InputStreamRequestContent(stream));
+            this.makeRequest(HttpMethod.PUT, task,
+                new InputStreamRequestContent(stream)
+            );
         }
     }
 
@@ -188,7 +192,7 @@ final class HttpTransporter extends AbstractTransporter {
         AuthenticationContext.close(proxyAuthContext);
     }
 
-    private ContentResponse makeRequest(HttpMethod method, TransportTask task, Request.Content bodyContent) throws MalformedURLException {
+    private ContentResponse makeRequest(HttpMethod method, TransportTask task, Request.Content bodyContent) {
         final String url = this.baseUri.resolve(task.getLocation()).toString();
         System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
         if (this.authInfo != null) {
@@ -199,7 +203,18 @@ final class HttpTransporter extends AbstractTransporter {
         final Request request = this.client.newRequest(url);
         final ContentResponse response;
         try {
-            response = request.method(method).body(bodyContent).send();
+            response = request.method(method).headers(httpFields -> {
+                System.err.printf("\tCustom HEADER HttpTransporter.makeRequest() called! fields: %d; URL: %s%n", httpFields.size(), url);
+                if (bodyContent != null) {
+                    httpFields.add(HttpHeader.CONTENT_TYPE, bodyContent.getContentType());
+                    if (task instanceof PutTask putTask) {
+                        final long dataLength = putTask.getDataLength();
+                        if (dataLength > 0) {
+                            httpFields.add(HttpHeader.CONTENT_LENGTH, dataLength);
+                        }
+                    }
+                }
+            }).body(bodyContent).send();
         } catch (Exception ex) {
             throw new HttpRequestException(ex.getMessage(), request);
         }
