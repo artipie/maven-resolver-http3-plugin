@@ -19,7 +19,11 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
+  <parent>
+    <groupId>com.artipie</groupId>
+    <artifactId>ppom</artifactId>
+    <version>1.1.0</version>
+  </parent>
   <artifactId>maven-resolver-transport-http3</artifactId>
   <groupId>com.artipie.maven.resolver</groupId>
   <version>0.0.1</version>
@@ -225,6 +229,15 @@
         <artifactId>maven-javadoc-plugin</artifactId>
         <configuration>
           <source>${maven.compiler.source}</source>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <includes>
+            <include>**/*IT.class</include>
+          </includes>
         </configuration>
       </plugin>
       <!--package to jar with dependencies and use original name-->

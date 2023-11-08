@@ -10,7 +10,6 @@ import org.eclipse.aether.spi.connector.transport.PutTask;
 import org.eclipse.aether.spi.connector.transport.TransportListener;
 import org.eclipse.aether.spi.connector.transport.Transporter;
 import org.eclipse.jetty.client.*;
-import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http3.client.HTTP3Client;
@@ -32,8 +31,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.function.Consumer;
-
 import static org.junit.Assert.*;
 
 /**
@@ -175,6 +172,7 @@ public class MavenResolverIT {
     }
 
     @BeforeClass
+    @SuppressWarnings("deprecation")
     public static void prepare() throws IOException, InterruptedException {
         try {
             caddyProxy = new FixedHostPortGenericContainer<>("library/caddy:2.7.5")
