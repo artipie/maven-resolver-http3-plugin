@@ -204,7 +204,6 @@ final class HttpTransporter extends AbstractTransporter {
         final ContentResponse response;
         try {
             response = request.method(method).headers(httpFields -> {
-                System.err.printf("\tCustom HEADER HttpTransporter.makeRequest() called! fields: %d; URL: %s%n", httpFields.size(), url);
                 if (bodyContent != null) {
                     httpFields.add(HttpHeader.CONTENT_TYPE, bodyContent.getContentType());
                     if (task instanceof PutTask putTask) {
