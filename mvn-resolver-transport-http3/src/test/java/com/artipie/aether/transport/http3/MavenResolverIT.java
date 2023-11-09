@@ -25,6 +25,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.InternetProtocol;
 import org.testcontainers.containers.wait.strategy.ShellStrategy;
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -32,15 +33,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Testing transport via containerized Caddy http3 server in proxy mode.
  */
 public class MavenResolverIT {
-    private static final String REMOTE_PATH = "commons-cli/commons-cli/1.4/commons-cli-1.4.pom";
-    private static final String LOCAL_PATH = "commons-cli-1.4.pom";
+    private static final String REMOTE_PATH = "commons-cli/commons-cli/1.4/commons-cli-1.4.jar";
+    private static final String LOCAL_PATH = "commons-cli-1.4.jar";
 
     private static GenericContainer<?> caddyProxy;
+    private static File tempFile;
 
     @Test
     public void testTransporterAuth() throws Exception {
@@ -120,55 +123,54 @@ public class MavenResolverIT {
 
     @Test
     public void testJettyLocalhostPut() throws Exception {
-        restartPutServer();
+        resetPutServer();
         final HTTP3Client h3Client = new HTTP3Client();
         HttpClientTransportOverHTTP3 transport = new HttpClientTransportOverHTTP3(h3Client);
         final HttpClient client = new HttpClient(transport);
         client.start();
         h3Client.getClientConnector().getSslContextFactory().setTrustAll(true);
-        final String testData = "test data";
-        final byte[] bytes = testData.getBytes(StandardCharsets.UTF_8);
+        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
         final ContentResponse response = client.newRequest("https://localhost:7445/test1").
             method(HttpMethod.PUT).body(
-                new InputStreamRequestContent(new ByteArrayInputStream(bytes))
-            ).headers(httpFields -> httpFields.add(HttpHeader.CONTENT_LENGTH, bytes.length)).send();
+                new InputStreamRequestContent(new ByteArrayInputStream(srcData))
+            ).headers(httpFields -> httpFields.add(HttpHeader.CONTENT_LENGTH, srcData.length)).send();
         assertEquals(200, response.getStatus());
-        final Container.ExecResult result = caddyProxy.execInContainer("cat /srv/test1".split(" "));
-        assertEquals(0, result.getExitCode());
-        assertEquals(testData, result.getStdout());
+        caddyProxy.copyFileFromContainer("/srv/test1", tempFile.getPath());
+        final byte[] dstData = Files.readAllBytes(Path.of(tempFile.getPath()));
+        assertArrayEquals(srcData, dstData);
         client.stop();
     }
 
     @Test
     public void testTransporterPutAnon() throws Exception {
         final String repo = "https://localhost:7445/";
-        restartPutServer();
+        resetPutServer();
         final HttpTransporterFactory factory = new HttpTransporterFactory();
         final PutTask task = new PutTask(URI.create("test1")).setListener(new TransportListener() {});
-        final String testData = "test data";
-        task.setDataString(testData);
+        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        task.setDataBytes(srcData);
         try (final Transporter transporter = factory.newInstance(newSession(), newRepo(repo))) {
             transporter.put(task);
         }
-        final Container.ExecResult result = caddyProxy.execInContainer("cat /srv/test1".split(" "));
-        assertEquals(0, result.getExitCode());
-        assertEquals(testData, result.getStdout());
+        caddyProxy.copyFileFromContainer("/srv/test1", tempFile.getPath());
+        final byte[] dstData = Files.readAllBytes(Path.of(tempFile.getPath()));
+        assertArrayEquals(srcData, dstData);
     }
 
     @Test
     public void testTransporterPutAuth() throws Exception {
         final String repo = "https://demo:demo@localhost:7446/";
-        restartPutServer();
+        resetPutServer();
         final HttpTransporterFactory factory = new HttpTransporterFactory();
         final PutTask task = new PutTask(URI.create("test1")).setListener(new TransportListener() {});
-        final String testData = "test data";
-        task.setDataString(testData);
+        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        task.setDataBytes(srcData);
         try (final Transporter transporter = factory.newInstance(newSession(), newRepo(repo))) {
             transporter.put(task);
         }
-        final Container.ExecResult result = caddyProxy.execInContainer("cat /srv/test1".split(" "));
-        assertEquals(0, result.getExitCode());
-        assertEquals(testData, result.getStdout());
+        caddyProxy.copyFileFromContainer("/srv/test1", tempFile.getPath());
+        final byte[] dstData = Files.readAllBytes(Path.of(tempFile.getPath()));
+        assertArrayEquals(srcData, dstData);
     }
 
     @BeforeClass
@@ -189,6 +191,8 @@ public class MavenResolverIT {
                 .withAccessToHost(true);
             caddyProxy.start();
             caddyProxy.execInContainer("apk add -f python3".split(" "));
+            tempFile = File.createTempFile( "test_file", null);
+            tempFile.deleteOnExit();
         }
         catch (Exception ex) {
             System.err.println(caddyProxy.getLogs());
@@ -199,6 +203,7 @@ public class MavenResolverIT {
     @AfterClass
     public static void finish() {
         caddyProxy.stop();
+        tempFile.delete();
     }
 
     private static DefaultRepositorySystemSession newSession() {
@@ -212,7 +217,10 @@ public class MavenResolverIT {
         return new RemoteRepository.Builder("test", "default", url).build();
     }
 
-    private static void restartPutServer() throws InterruptedException, IOException {
-        caddyProxy.execInContainer("sh", "-c", "cd /srv;killall -9 python3;rm -rf /srv/*;nohup python3 /etc/caddy/SimpleHTTPPutServer.py 8081 &");
+    private static void resetPutServer() throws InterruptedException, IOException {
+        Container.ExecResult result = caddyProxy.execInContainer("sh", "-c", "cd /srv;killall -9 python3;rm -rf /srv/*;nohup python3 /etc/caddy/SimpleHTTPPutServer.py 8081 &");
+        boolean deleted = tempFile.delete();
+        assertEquals(0, result.getExitCode());
+        assertTrue(deleted);
     }
 }
