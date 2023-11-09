@@ -55,7 +55,6 @@ public final class HttpTransporterFactory implements TransporterFactory {
     /**
      * Ctor for ServiceLocator.
      */
-    @Deprecated
     public HttpTransporterFactory() {
         this(getManuallyCreatedExtractors());
     }

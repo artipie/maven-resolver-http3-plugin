@@ -1,9 +1,24 @@
 {
-        https_port 7443
-        http_port 8080
+        #https_port 7443
+        http_port 8086
 }
-
-:7443 {
+:7447 {
 	tls ./stunnel.pem ./stunnel.pem
-	respond "Hello, world! You're using {http.request.proto}"
+	reverse_proxy http://localhost:8081 {
+		header_up Host {http.reverse_proxy.upstream.hostport}
+	}
+	log {
+		output stdout
+		format console
+		level info
+	}
+}
+:7448 {
+	tls ./stunnel.pem ./stunnel.pem
+	respond "Hello! You're using {http.request.proto}. BODY: {http.request.body}"
+	log {
+		output stdout
+		format console
+		level info
+	}
 }
