@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.3.3
-      - uses: actions/setup-java@v2
+      - uses: actions/setup-java@v3
         with:
           java-version: 17
           distribution: adopt
@@ -54,6 +54,7 @@ jobs:
       - name: Deploy artifacts
         run: |
           cd mvn-resolver-transport-http3
+          export MAVEN_OPTS="--add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang.reflect=ALL-UNNAMED --add-opens=java.base/java.text=ALL-UNNAMED --add-opens=java.desktop/java.awt.font=ALL-UNNAMED"
           mvn deploy -Partipie,publish,sonatype,gpg-sign -DskipITs --errors
       - name: Create Github Release
         id: create_release
