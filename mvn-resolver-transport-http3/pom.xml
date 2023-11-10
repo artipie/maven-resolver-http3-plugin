@@ -26,7 +26,7 @@
   </parent>
   <artifactId>maven-resolver-transport-http3</artifactId>
   <groupId>com.artipie.maven.resolver</groupId>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
 
   <name>Artipie Maven Artifact Resolver Transport HTTP3</name>
   <description>A transport implementation for repositories using HTTP3.</description>
