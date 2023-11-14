@@ -20,8 +20,8 @@ Usage:
 Plugin factory called only on first usage. For maven 3.9+ artifact resolver transport is default:
 
 ```
-time mvn clean package
-time mvn -Dmaven.resolver.transport=native clean package # explicit switch to Resolver API
+# explicit switch to Resolver API, force skip certificates check
+time mvn -Dmaven.resolver.transport=native -Daether.connector.https.securityMode=insecure clean package
 ```
 
 Currently test require test http3 server. See `mvn-http3/README.md` (parent directory) for details.
