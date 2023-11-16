@@ -6,7 +6,7 @@
 }
 
 :7443 {
-	tls /stunnel.pem /stunnel.pem
+	tls ./stunnel.pem ./stunnel.pem
 	reverse_proxy https://repo.maven.apache.org:443 {
 		header_up Host {http.reverse_proxy.upstream.hostport}
 	}
@@ -21,7 +21,7 @@
 }
 
 :7444 {
-	tls /stunnel.pem /stunnel.pem
+	tls ./stunnel.pem ./stunnel.pem
 	reverse_proxy https://repo.maven.apache.org:443 {
 		header_up Host {http.reverse_proxy.upstream.hostport}
 	}
@@ -36,7 +36,7 @@
 }
 
 :7445 {
-	tls /stunnel.pem /stunnel.pem
+	tls ./stunnel.pem ./stunnel.pem
 	reverse_proxy http://localhost:8081 {
 		header_up Host {http.reverse_proxy.upstream.hostport}
 	}
