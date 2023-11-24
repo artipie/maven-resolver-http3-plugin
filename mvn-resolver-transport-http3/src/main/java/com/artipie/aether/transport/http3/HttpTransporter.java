@@ -206,8 +206,8 @@ final class HttpTransporter extends AbstractTransporter {
             response = request.method(method).headers(httpFields -> {
                 if (bodyContent != null) {
                     httpFields.add(HttpHeader.CONTENT_TYPE, bodyContent.getContentType());
-                    if (task instanceof PutTask putTask) {
-                        final long dataLength = putTask.getDataLength();
+                    if (task instanceof PutTask) {
+                        final long dataLength = ((PutTask)task).getDataLength();
                         if (dataLength > 0) {
                             httpFields.add(HttpHeader.CONTENT_LENGTH, dataLength);
                         }
