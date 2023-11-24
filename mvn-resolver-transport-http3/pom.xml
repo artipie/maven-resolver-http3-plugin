@@ -36,9 +36,9 @@
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
     <jettyVersion>12.0.1</jettyVersion>
     <spotless.check.skip>true</spotless.check.skip>
-    <!-- Jetty http3 is JDK17+ -->
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <!-- JDK14 seems to be compatible with both, jetty http3 dependencies and maven 3.9.x extensions API -->
+    <maven.compiler.source>14</maven.compiler.source>
+    <maven.compiler.target>14</maven.compiler.target>
   </properties>
 
   <dependencies>
