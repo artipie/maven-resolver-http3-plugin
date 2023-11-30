@@ -36,7 +36,7 @@ public class ArtipieHTTP3IT {
     @BeforeEach
     void init() throws IOException, InterruptedException {
         this.net = Network.newNetwork();
-        this.artipie =  new GenericContainer<>("artipie/artipie-ubuntu:1.0-SNAPSHOT")
+        this.artipie =  new GenericContainer<>("artipie/artipie-ubuntu:latest")
             .withNetwork(this.net)
             .withNetworkAliases("artipie")
             .withLogConsumer(this.artipieLog)
