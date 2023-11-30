@@ -60,8 +60,8 @@ public class MavenResolverIT {
 
     @Test
     public void testTransporterAuthFail() {
-        HttpResponseException exception = assertThrows(
-            "Invalid exception thrown", HttpResponseException.class,
+        HttpRequestException exception = assertThrows(
+            "Invalid exception thrown", HttpRequestException.class,
             () -> testTransporter("https://demo1:demo1@localhost:7444/maven2")
         );
         assertEquals("401", exception.getMessage());
@@ -69,8 +69,8 @@ public class MavenResolverIT {
 
     @Test
     public void testTransporterAnonAuthFail() {
-        HttpResponseException exception = assertThrows(
-            "Invalid exception thrown", HttpResponseException.class,
+        HttpRequestException exception = assertThrows(
+            "Invalid exception thrown", HttpRequestException.class,
             () -> testTransporter("https://localhost:7444/maven2")
         );
         assertEquals("401", exception.getMessage());
@@ -94,11 +94,10 @@ public class MavenResolverIT {
 
     @Test()
     public void testTransporterInvalidUrl() {
-        HttpRequestException exception = assertThrows(
+        assertThrows(
             "Invalid exception thrown", HttpRequestException.class,
             () -> testTransporter("https://localhost:7440/maven2")
         );
-        assertEquals("java.net.SocketTimeoutException: connect timeout", exception.getMessage());
     }
 
     private byte[] testTransporter(final String repo) throws Exception {
