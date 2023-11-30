@@ -223,7 +223,6 @@ final class HttpTransporter extends AbstractTransporter {
         HttpMethod method, TransportTask task, Request.Content bodyContent
     ) {
         final String url = this.baseUri.resolve(task.getLocation()).toString();
-        System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
         if (this.authInfo != null) {
             this.client.getAuthenticationStore().addAuthenticationResult(
                 new BasicAuthentication.BasicResult(this.baseUri, this.authInfo[0], this.authInfo[1])
@@ -245,12 +244,22 @@ final class HttpTransporter extends AbstractTransporter {
             }).body(bodyContent).send(listener);
             final Response response = listener.get(this.connectTimeout, TimeUnit.MILLISECONDS);
             if (response.getStatus() >= 300) {
-                System.err.println("Response status not success " + response.getStatus());
+                System.err.printf(
+                    "Request over HTTP3 error status %s, method=%s, url=%s%n",
+                    response.getStatus(), method, url
+                );
                 throw new HttpResponseException(Integer.toString(response.getStatus()), response);
             }
+            System.err.printf(
+                "Request over HTTP3 done, method=%s, resp status=%s, url=%s%n",
+                method, response.getStatus(), url
+            );
             return new ImmutablePair<>(listener.getInputStream(), response.getHeaders());
         } catch (Exception ex) {
-            System.err.println("Error on request " + ex.getMessage());
+            System.err.printf(
+                "Request over HTTP3 error=%s: %s, method=%s, url=%s%n",
+                ex.getClass(), ex.getMessage(), method, url
+            );
             throw new HttpRequestException(ex.getMessage(), this.client.newRequest(url));
         }
     }
@@ -284,7 +293,7 @@ final class HttpTransporter extends AbstractTransporter {
             } catch (Exception ex) {
                 len = -1;
             }
-            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
+            //System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
         }
 
         // TODO: Force http3 initialization (HACK!)
@@ -316,20 +325,20 @@ final class HttpTransporter extends AbstractTransporter {
 
         HashMap<HttpVersion, HttpFieldPreEncoder> encoders = new HashMap<>();
         for (HttpFieldPreEncoder val: load) {
-            System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder val=" + val);
+            //System.err.println("\tCustom HttpTransporter HttpFieldPreEncoder val=" + val);
             encoders.put(val.getHttpVersion(), val);
         }
 
         Field ff = PreEncodedHttpField.class.getDeclaredField("__encoders");
         ff.setAccessible(true);
         String fldDescr = ff.get(null).toString();
-        System.err.println("\tCustom HttpTransporter __encoders BEFORE: " + fldDescr + "; this=" + this);
+        //System.err.println("\tCustom HttpTransporter __encoders BEFORE: " + fldDescr + "; this=" + this);
         @SuppressWarnings("unchecked") EnumMap<HttpVersion, HttpFieldPreEncoder> obj = (EnumMap<HttpVersion, HttpFieldPreEncoder>)ff.get(null);
         if (encoders.containsKey(HttpVersion.HTTP_3) && !obj.containsKey(HttpVersion.HTTP_3)) {
-            System.err.println("\tCustom HttpTransporter adding to __encoders: " + obj + "; this=" + this);
+            //System.err.println("\tCustom HttpTransporter adding to __encoders: " + obj + "; this=" + this);
             obj.put(HttpVersion.HTTP_3, encoders.get(HttpVersion.HTTP_3));
         }
-        System.err.println("\tCustom HttpTransporter __encoders AFTER: " + obj + "; this=" + this);
+        //System.err.println("\tCustom HttpTransporter __encoders AFTER: " + obj + "; this=" + this);
 
         // Rechecking http3 support is available (loaded)
         f = new PreEncodedHttpField("Host", "localhost");
@@ -340,7 +349,7 @@ final class HttpTransporter extends AbstractTransporter {
             } catch (Exception ex) {
                 len = -1;
             }
-            System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
+            //System.err.println("\tCustom HttpTransporter PreEncodedHttpField v=" + v + "; len=" + len);
         }
     }
 }

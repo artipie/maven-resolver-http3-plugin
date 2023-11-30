@@ -82,8 +82,8 @@ public class ArtipieHTTP3IT {
             res,
             Matchers.stringContainsInOrder(
                 "BUILD SUCCESS",
-                "https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar"
+                "Request over HTTP3 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "Request over HTTP3 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar"
             )
         );
     }
