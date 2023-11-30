@@ -19,15 +19,14 @@ import org.eclipse.aether.spi.connector.transport.Transporter;
 import org.eclipse.jetty.client.ContentResponse;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.HttpRequestException;
-import org.eclipse.jetty.client.HttpResponseException;
 import org.eclipse.jetty.client.InputStreamRequestContent;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http3.client.HTTP3Client;
 import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.GenericContainer;
@@ -177,7 +176,7 @@ public class MavenResolverIT {
         assertArrayEquals(srcData, dstData);
     }
 
-    @BeforeClass
+    @BeforeAll
     @SuppressWarnings("deprecation")
     public static void prepare() throws IOException, InterruptedException {
         try {
@@ -204,7 +203,7 @@ public class MavenResolverIT {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void finish() {
         caddyProxy.stop();
         tempFile.delete();

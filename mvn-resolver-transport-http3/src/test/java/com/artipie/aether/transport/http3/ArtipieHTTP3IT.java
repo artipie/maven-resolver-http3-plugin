@@ -17,6 +17,21 @@ import org.testcontainers.containers.output.OutputFrame;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.MountableFile;
 
+/**
+ * This test uses two docker containers:<p>
+ * 1) {@link ArtipieHTTP3IT#artipie} is container with latest artipie version running on ubuntu 22.04 and java 21<p>
+ * 2) {@link ArtipieHTTP3IT#mavenClient} is ubuntu 22.04 based container with this plugin built with maven 3.9.5 under java 21,
+ * see ./Dockerfile<p>
+ *
+ * The containers are connected via docker {@link Network} with alias 'artipie'. Artipie container
+ * runs HTTP3 maven-proxy repository available at <code>https://artipie:8091/my-maven-proxy/</code>.
+ * <p>
+ * Test maven project {@code ./resources/com/example/maven-http3} which uses this plugin is added to
+ * {@link ArtipieHTTP3IT#mavenClient} and built with maven settings
+ * {@code ./resources/com/example/maven-http3/maven-settings.xml}. The dependencies of this project
+ * are obtained from Artipie via HTTP3.
+ *
+ */
 public class ArtipieHTTP3IT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ArtipieHTTP3IT.class);
@@ -28,9 +43,6 @@ public class ArtipieHTTP3IT {
     private final Consumer<OutputFrame> artipieLog =
         new Slf4jLogConsumer(LoggerFactory.getLogger(this.getClass())).withPrefix("ARTIPIE");
 
-    /**
-     * Container network.
-     */
     private Network net;
 
     @BeforeEach
