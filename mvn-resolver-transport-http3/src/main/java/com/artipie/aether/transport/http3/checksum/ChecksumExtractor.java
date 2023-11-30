@@ -20,6 +20,7 @@ package com.artipie.aether.transport.http3.checksum;
 
 import org.eclipse.jetty.client.ContentResponse;
 import java.util.Map;
+import org.eclipse.jetty.http.HttpFields;
 
 /**
  * A component extracting included checksums from response of artifact request.
@@ -30,5 +31,5 @@ public abstract class ChecksumExtractor {
     /**
      * Tries to extract checksums from response headers, if present, otherwise returns {@code null}.
      */
-    public abstract Map<String, String> extractChecksums(ContentResponse response);
+    public abstract Map<String, String> extractChecksums(HttpFields response);
 }

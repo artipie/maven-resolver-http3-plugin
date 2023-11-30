@@ -25,6 +25,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
+import org.eclipse.jetty.http.HttpFields;
 
 /**
  * A component extracting {@code x-} non-standard style checksums from response headers.
@@ -44,7 +45,7 @@ public class XChecksumChecksumExtractor extends ChecksumExtractor {
     public static final String NAME = "x-checksum";
 
     @Override
-    public Map<String, String> extractChecksums(ContentResponse response) {
+    public Map<String, String> extractChecksums(HttpFields response) {
         String value;
         HashMap<String, String> result = new HashMap<>();
         // Central style: x-checksum-sha1: c74edb60ca2a0b57ef88d9a7da28f591e3d4ce7b
@@ -74,8 +75,8 @@ public class XChecksumChecksumExtractor extends ChecksumExtractor {
         return result.isEmpty() ? null : result;
     }
 
-    private String extractChecksum(ContentResponse response, String name) {
-        HttpField header = response.getHeaders().getField(name);
+    private String extractChecksum(HttpFields response, String name) {
+        HttpField header = response.getField(name);
         return header == null ? null : header.getValue();
     }
 }
