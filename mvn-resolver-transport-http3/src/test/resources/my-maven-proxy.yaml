@@ -1,0 +1,13 @@
+repo:
+  type: maven-proxy
+  storage:
+    type: fs
+    path: /var/artipie/data
+  remotes:
+    - url: https://repo.maven.apache.org/maven2
+  port: 8091
+  http3: true # enable http3 mode for repository
+  http3_ssl:
+    jks:
+      path: /var/artipie/keystore.jks # path to jks file, not storage relative
+      password: secret

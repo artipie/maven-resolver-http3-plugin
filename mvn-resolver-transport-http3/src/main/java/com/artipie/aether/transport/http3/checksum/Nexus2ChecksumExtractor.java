@@ -20,6 +20,7 @@ package com.artipie.aether.transport.http3.checksum;
 
 import org.eclipse.jetty.client.ContentResponse;
 import org.eclipse.jetty.http.HttpField;
+import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpHeader;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -37,10 +38,10 @@ public class Nexus2ChecksumExtractor extends ChecksumExtractor {
     public static final String NAME = "nexus2";
 
     @Override
-    public Map<String, String> extractChecksums(ContentResponse response) {
+    public Map<String, String> extractChecksums(HttpFields headers) {
         // Nexus-style, ETag: "{SHA1{d40d68ba1f88d8e9b0040f175a6ff41928abd5e7}}"
 
-        HttpField field = response.getHeaders().getField(HttpHeader.ETAG);
+        HttpField field = headers.getField(HttpHeader.ETAG);
         String etag = field == null? null: field.getValue();
 
         if (etag != null) {

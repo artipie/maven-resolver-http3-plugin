@@ -1,0 +1,6 @@
+meta:
+  storage:
+    type: fs
+    path: /var/artipie/repo
+  credentials:
+    - type: env

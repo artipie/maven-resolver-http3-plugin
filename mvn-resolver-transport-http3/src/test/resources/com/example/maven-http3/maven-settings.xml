@@ -23,12 +23,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 -->
 <settings>
-    <mirrors>
-        <mirror>
+    <profiles>
+        <profile>
             <id>artipie-proxy</id>
-            <name>Local proxy of central repo</name>
-            <url>http://localhost:90548/my-maven-proxy/</url>
-            <mirrorOf>*</mirrorOf>
-        </mirror>
-    </mirrors>
+            <repositories>
+                <repository>
+                    <id>my-maven</id>
+                    <url>https://artipie:8091/my-maven-proxy/</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+    <activeProfiles>
+        <activeProfile>artipie-proxy</activeProfile>
+    </activeProfiles>
 </settings>

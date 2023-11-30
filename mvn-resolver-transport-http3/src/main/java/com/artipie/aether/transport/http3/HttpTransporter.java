@@ -19,40 +19,61 @@
 package com.artipie.aether.transport.http3;
 
 import com.artipie.aether.transport.http3.checksum.ChecksumExtractor;
-import org.eclipse.aether.ConfigurationProperties;
-import org.eclipse.aether.RepositorySystemSession;
-import org.eclipse.aether.repository.AuthenticationContext;
-import org.eclipse.aether.repository.RemoteRepository;
-import org.eclipse.aether.spi.connector.transport.*;
-import org.eclipse.aether.transfer.NoTransporterException;
-import org.eclipse.aether.util.ConfigUtils;
-import org.eclipse.aether.util.FileUtils;
-import org.eclipse.jetty.client.*;
-import org.eclipse.jetty.http.*;
-import org.eclipse.jetty.http3.client.HTTP3Client;
-import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Field;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
+import java.util.Date;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import static java.util.Objects.requireNonNull;
+import java.util.Optional;
+import java.util.ServiceLoader;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.aether.ConfigurationProperties;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.repository.AuthenticationContext;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.spi.connector.transport.AbstractTransporter;
+import org.eclipse.aether.spi.connector.transport.GetTask;
+import org.eclipse.aether.spi.connector.transport.PeekTask;
+import org.eclipse.aether.spi.connector.transport.PutTask;
+import org.eclipse.aether.spi.connector.transport.TransportTask;
+import org.eclipse.aether.transfer.NoTransporterException;
+import org.eclipse.aether.util.ConfigUtils;
+import org.eclipse.aether.util.FileUtils;
+import org.eclipse.jetty.client.BasicAuthentication;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.HttpRequestException;
+import org.eclipse.jetty.client.HttpResponseException;
+import org.eclipse.jetty.client.InputStreamRequestContent;
+import org.eclipse.jetty.client.InputStreamResponseListener;
+import org.eclipse.jetty.client.Request;
+import org.eclipse.jetty.client.Response;
+import org.eclipse.jetty.http.HttpFieldPreEncoder;
+import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
+import org.eclipse.jetty.http.HttpVersion;
+import org.eclipse.jetty.http.PreEncodedHttpField;
+import org.eclipse.jetty.http3.client.HTTP3Client;
+import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
 
 /**
  * A transporter for HTTP/HTTPS.
  */
 final class HttpTransporter extends AbstractTransporter {
-    private static final Logger LOGGER = LoggerFactory.getLogger(HttpTransporter.class);
 
     private final Map<String, ChecksumExtractor> checksumExtractors;
 
@@ -63,14 +84,15 @@ final class HttpTransporter extends AbstractTransporter {
     private final URI baseUri;
 
     private final HttpClient client;
+    private final int connectTimeout;
 
     private String[] authInfo = null;
 
     HttpTransporter(
             Map<String, ChecksumExtractor> checksumExtractors,
             RemoteRepository repository,
-            RepositorySystemSession session)
-        throws Exception {
+            RepositorySystemSession session
+    ) throws Exception {
 
         forceLoadHttp3Support();
 
@@ -105,12 +127,14 @@ final class HttpTransporter extends AbstractTransporter {
             session,
             ConfigurationProperties.HTTPS_SECURITY_MODE_DEFAULT,
             ConfigurationProperties.HTTPS_SECURITY_MODE + "." + repository.getId(),
-            ConfigurationProperties.HTTPS_SECURITY_MODE);
-        int connectTimeout = ConfigUtils.getInteger(
+            ConfigurationProperties.HTTPS_SECURITY_MODE
+        );
+        this.connectTimeout = ConfigUtils.getInteger(
             session,
             ConfigurationProperties.DEFAULT_CONNECT_TIMEOUT,
             ConfigurationProperties.CONNECT_TIMEOUT + "." + repository.getId(),
-            ConfigurationProperties.CONNECT_TIMEOUT);
+            ConfigurationProperties.CONNECT_TIMEOUT
+        );
 
         HTTP3Client h3Client = new HTTP3Client();
         HttpClientTransportOverHTTP3 transport = new HttpClientTransportOverHTTP3(h3Client);
@@ -118,8 +142,9 @@ final class HttpTransporter extends AbstractTransporter {
         this.client.setFollowRedirects(true);
         this.client.setConnectTimeout(connectTimeout);
         this.client.start();
-        h3Client.getClientConnector().getSslContextFactory()
-            .setTrustAll(httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE));
+        h3Client.getClientConnector().getSslContextFactory().setTrustAll(
+            httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE)
+        );
     }
 
     @Override
@@ -137,20 +162,22 @@ final class HttpTransporter extends AbstractTransporter {
 
     @Override
     protected void implGet(GetTask task) throws Exception {
-        ContentResponse response = this.makeRequest(HttpMethod.GET, task, null);
+        final Pair<InputStream, HttpFields> response = this.makeRequest(HttpMethod.GET, task, null);
         final boolean resume = false;
         final File dataFile = task.getDataFile();
-        final byte[] content = response.getContent();
+        long length = Long.parseLong(
+            Optional.ofNullable(response.getValue().get(HttpHeader.CONTENT_LENGTH)).orElse("0")
+        );
         if (dataFile == null) {
-            try (final InputStream is = new ByteArrayInputStream(content)) {
-                utilGet(task, is, true, content.length, resume);
-                extractChecksums(response, task);
+            try (final InputStream is = response.getKey()) {
+                utilGet(task, is, true, length, resume);
+                extractChecksums(response.getValue(), task);
             }
         } else {
             try (FileUtils.CollocatedTempFile tempFile = FileUtils.newTempFile(dataFile.toPath())) {
                 task.setDataFile(tempFile.getPath().toFile());
-                try (final InputStream is = new ByteArrayInputStream(content)) {
-                    utilGet(task, is, true, content.length, resume);
+                try (final InputStream is = response.getKey()) {
+                    utilGet(task, is, true, length, resume);
                 }
                 tempFile.move();
             } finally {
@@ -158,7 +185,7 @@ final class HttpTransporter extends AbstractTransporter {
             }
         }
         if (task.getDataFile() != null) {
-            final String lastModifiedHeader = response.getHeaders().get(HttpHeader.LAST_MODIFIED);
+            final String lastModifiedHeader = response.getValue().get(HttpHeader.LAST_MODIFIED);
             if (lastModifiedHeader != null) {
                 final DateFormat lastModifiedFormat = new SimpleDateFormat(
                     "EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US
@@ -192,7 +219,9 @@ final class HttpTransporter extends AbstractTransporter {
         AuthenticationContext.close(proxyAuthContext);
     }
 
-    private ContentResponse makeRequest(HttpMethod method, TransportTask task, Request.Content bodyContent) {
+    private Pair<InputStream, HttpFields> makeRequest(
+        HttpMethod method, TransportTask task, Request.Content bodyContent
+    ) {
         final String url = this.baseUri.resolve(task.getLocation()).toString();
         System.err.printf("Custom HttpTransporter.makeRequest() called! Method: %s; URL: %s%n", method.toString(), url);
         if (this.authInfo != null) {
@@ -200,10 +229,10 @@ final class HttpTransporter extends AbstractTransporter {
                 new BasicAuthentication.BasicResult(this.baseUri, this.authInfo[0], this.authInfo[1])
             );
         }
-        final Request request = this.client.newRequest(url);
-        final ContentResponse response;
         try {
-            response = request.method(method).headers(httpFields -> {
+            InputStreamResponseListener listener = new InputStreamResponseListener();
+            this.client.newRequest(url).method(method).headers(
+                httpFields -> {
                 if (bodyContent != null) {
                     httpFields.add(HttpHeader.CONTENT_TYPE, bodyContent.getContentType());
                     if (task instanceof PutTask) {
@@ -213,17 +242,20 @@ final class HttpTransporter extends AbstractTransporter {
                         }
                     }
                 }
-            }).body(bodyContent).send();
+            }).body(bodyContent).send(listener);
+            final Response response = listener.get(this.connectTimeout, TimeUnit.MILLISECONDS);
+            if (response.getStatus() >= 300) {
+                System.err.println("Response status not success " + response.getStatus());
+                throw new HttpResponseException(Integer.toString(response.getStatus()), response);
+            }
+            return new ImmutablePair<>(listener.getInputStream(), response.getHeaders());
         } catch (Exception ex) {
-            throw new HttpRequestException(ex.getMessage(), request);
+            System.err.println("Error on request " + ex.getMessage());
+            throw new HttpRequestException(ex.getMessage(), this.client.newRequest(url));
         }
-        if (response.getStatus() >= 300) {
-            throw new HttpResponseException(Integer.toString(response.getStatus()), response);
-        }
-        return response;
     }
 
-    private void extractChecksums(ContentResponse response, GetTask task) {
+    private void extractChecksums(HttpFields response, GetTask task) {
         for (Map.Entry<String, ChecksumExtractor> extractorEntry : checksumExtractors.entrySet()) {
             Map<String, String> checksums = extractorEntry.getValue().extractChecksums(response);
             if (checksums != null) {
