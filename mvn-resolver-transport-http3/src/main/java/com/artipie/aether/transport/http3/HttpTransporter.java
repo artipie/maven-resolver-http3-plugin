@@ -40,6 +40,7 @@ import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.commons.lang3.exception.UncheckedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -308,7 +309,7 @@ final class HttpTransporter extends AbstractTransporter {
                 "Request over %s error=%s: %s, method=%s, url=%s%n", version,
                 ex.getClass(), ex.getMessage(), method, url
             );
-            if (version == HttpVersion.HTTP_3) {
+            if (version == HttpVersion.HTTP_3 && ex instanceof TimeoutException) {
                 System.err.printf("Repeat request over HTTP/1.1 method=%s, url=%s%n", method, url);
                 return this.makeRequest(method, task, bodyContent, this.initOrGetHttpClient());
             }
