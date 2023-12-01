@@ -38,7 +38,9 @@ import java.util.Map;
 import static java.util.Objects.requireNonNull;
 import java.util.Optional;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.exception.UncheckedException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.aether.ConfigurationProperties;
@@ -69,11 +71,18 @@ import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.http.PreEncodedHttpField;
 import org.eclipse.jetty.http3.client.HTTP3Client;
 import org.eclipse.jetty.http3.client.transport.HttpClientTransportOverHTTP3;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 /**
  * A transporter for HTTP/HTTPS.
  */
 final class HttpTransporter extends AbstractTransporter {
+
+    private final static Set<String> CENTRAL = Set.of(
+        "repo.maven.apache.org",
+        "oss.sonatype.org",
+        "packages.atlassian.com"
+    );
 
     private final Map<String, ChecksumExtractor> checksumExtractors;
 
@@ -83,8 +92,11 @@ final class HttpTransporter extends AbstractTransporter {
 
     private final URI baseUri;
 
-    private final HttpClient client;
+    private HttpClient http3Client;
+    private HttpClient httpClient = null;
+
     private final int connectTimeout;
+    private final String httpsSecurityMode;
 
     private String[] authInfo = null;
 
@@ -123,7 +135,7 @@ final class HttpTransporter extends AbstractTransporter {
             };
         }
 
-        String httpsSecurityMode = ConfigUtils.getString(
+        httpsSecurityMode = ConfigUtils.getString(
             session,
             ConfigurationProperties.HTTPS_SECURITY_MODE_DEFAULT,
             ConfigurationProperties.HTTPS_SECURITY_MODE + "." + repository.getId(),
@@ -135,16 +147,43 @@ final class HttpTransporter extends AbstractTransporter {
             ConfigurationProperties.CONNECT_TIMEOUT + "." + repository.getId(),
             ConfigurationProperties.CONNECT_TIMEOUT
         );
+        this.chooseClient();
+    }
 
-        HTTP3Client h3Client = new HTTP3Client();
-        HttpClientTransportOverHTTP3 transport = new HttpClientTransportOverHTTP3(h3Client);
-        this.client = new HttpClient(transport);
-        this.client.setFollowRedirects(true);
-        this.client.setConnectTimeout(connectTimeout);
-        this.client.start();
-        h3Client.getClientConnector().getSslContextFactory().setTrustAll(
-            httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE)
-        );
+    private HttpClient initOrGetHttpClient() {
+        if (this.httpClient == null) {
+            this.httpClient = new HttpClient();
+            this.httpClient.setFollowRedirects(true);
+            this.httpClient.setConnectTimeout(connectTimeout);
+            SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
+            sslContextFactory.setTrustAll(httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE));
+            httpClient.setSslContextFactory(sslContextFactory);
+            try {
+                this.httpClient.start();
+            } catch (Exception e) {
+                throw new UncheckedException(e);
+            }
+        }
+        return this.httpClient;
+    }
+
+    private HttpClient initOrGetHttp3Client() {
+        if (this.http3Client == null) {
+            HTTP3Client h3Client = new HTTP3Client();
+            HttpClientTransportOverHTTP3 transport = new HttpClientTransportOverHTTP3(h3Client);
+            this.http3Client = new HttpClient(transport);
+            this.http3Client.setFollowRedirects(true);
+            this.http3Client.setConnectTimeout(connectTimeout);
+            try {
+                this.http3Client.start();
+                h3Client.getClientConnector().getSslContextFactory().setTrustAll(
+                    httpsSecurityMode.equals(ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE)
+                );
+            } catch (Exception e) {
+                throw new UncheckedException(e);
+            }
+        }
+        return this.http3Client;
     }
 
     @Override
@@ -157,12 +196,13 @@ final class HttpTransporter extends AbstractTransporter {
 
     @Override
     protected void implPeek(PeekTask task) throws Exception {
-        this.makeRequest(HttpMethod.HEAD, task, null);
+        this.makeRequest(HttpMethod.HEAD, task, null, this.chooseClient());
     }
 
     @Override
     protected void implGet(GetTask task) throws Exception {
-        final Pair<InputStream, HttpFields> response = this.makeRequest(HttpMethod.GET, task, null);
+        final Pair<InputStream, HttpFields> response =
+            this.makeRequest(HttpMethod.GET, task, null, this.chooseClient());
         final boolean resume = false;
         final File dataFile = task.getDataFile();
         long length = Long.parseLong(
@@ -202,16 +242,21 @@ final class HttpTransporter extends AbstractTransporter {
     protected void implPut(PutTask task) throws Exception {
         try (final InputStream stream = task.newInputStream()) {
             this.makeRequest(HttpMethod.PUT, task,
-                new InputStreamRequestContent(stream)
-            );
+                new InputStreamRequestContent(stream), this.chooseClient());
         }
     }
 
     @Override
     protected void implClose() {
         try {
-            client.stop();
-            client.destroy();
+            if (this.http3Client != null) {
+                http3Client.stop();
+                http3Client.destroy();
+            }
+            if (this.httpClient != null) {
+                this.httpClient.stop();
+                this.httpClient.destroy();
+            }
         } catch (Exception e) {
             throw new UncheckedIOException(new IOException(e));
         }
@@ -220,17 +265,20 @@ final class HttpTransporter extends AbstractTransporter {
     }
 
     private Pair<InputStream, HttpFields> makeRequest(
-        HttpMethod method, TransportTask task, Request.Content bodyContent
+        HttpMethod method, TransportTask task, Request.Content bodyContent, HttpClient client
     ) {
         final String url = this.baseUri.resolve(task.getLocation()).toString();
         if (this.authInfo != null) {
-            this.client.getAuthenticationStore().addAuthenticationResult(
+            client.getAuthenticationStore().addAuthenticationResult(
                 new BasicAuthentication.BasicResult(this.baseUri, this.authInfo[0], this.authInfo[1])
             );
         }
+        Request request = null;
+        final HttpVersion version = this.httpVersion(client);
         try {
             InputStreamResponseListener listener = new InputStreamResponseListener();
-            this.client.newRequest(url).method(method).headers(
+            request = client.newRequest(url);
+            request.method(method).headers(
                 httpFields -> {
                 if (bodyContent != null) {
                     httpFields.add(HttpHeader.CONTENT_TYPE, bodyContent.getContentType());
@@ -245,22 +293,26 @@ final class HttpTransporter extends AbstractTransporter {
             final Response response = listener.get(this.connectTimeout, TimeUnit.MILLISECONDS);
             if (response.getStatus() >= 300) {
                 System.err.printf(
-                    "Request over HTTP3 error status %s, method=%s, url=%s%n",
-                    response.getStatus(), method, url
+                    "Request over %s error status %s, method=%s, url=%s%n",
+                    version, response.getStatus(), method, url
                 );
                 throw new HttpResponseException(Integer.toString(response.getStatus()), response);
             }
             System.err.printf(
-                "Request over HTTP3 done, method=%s, resp status=%s, url=%s%n",
-                method, response.getStatus(), url
+                "Request over %s done, method=%s, resp status=%s, url=%s%n",
+                version, method, response.getStatus(), url
             );
             return new ImmutablePair<>(listener.getInputStream(), response.getHeaders());
         } catch (Exception ex) {
             System.err.printf(
-                "Request over HTTP3 error=%s: %s, method=%s, url=%s%n",
+                "Request over %s error=%s: %s, method=%s, url=%s%n", version,
                 ex.getClass(), ex.getMessage(), method, url
             );
-            throw new HttpRequestException(ex.getMessage(), this.client.newRequest(url));
+            if (version == HttpVersion.HTTP_3) {
+                System.err.printf("Repeat request over HTTP/1.1 method=%s, url=%s%n", method, url);
+                return this.makeRequest(method, task, bodyContent, this.initOrGetHttpClient());
+            }
+            throw new HttpRequestException(ex.getMessage(), request);
         }
     }
 
@@ -272,6 +324,24 @@ final class HttpTransporter extends AbstractTransporter {
                 return;
             }
         }
+    }
+
+    /**
+     * Choose http client to initialize and perform request with: if host is present in known
+     * central's hosts {@link HttpTransporter#CENTRAL}, http 1.1 client is used, otherwise we use http3 client.
+     */
+    private HttpClient chooseClient() {
+        final HttpClient res;
+        if (CENTRAL.contains(this.baseUri.getHost())) {
+            res = Optional.ofNullable(this.httpClient).orElseGet(this::initOrGetHttpClient);
+        } else {
+            res = Optional.ofNullable(this.http3Client).orElseGet(this::initOrGetHttp3Client);
+        }
+        return res;
+    }
+
+    private HttpVersion httpVersion(final HttpClient client) {
+        return client.getTransport() instanceof HttpClientTransportOverHTTP3 ? HttpVersion.HTTP_3 : HttpVersion.HTTP_1_1;
     }
 
     /**

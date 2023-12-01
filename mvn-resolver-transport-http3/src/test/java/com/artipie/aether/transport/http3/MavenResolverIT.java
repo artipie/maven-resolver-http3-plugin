@@ -43,8 +43,8 @@ import static org.junit.Assert.assertTrue;
  * Testing transport via containerized Caddy http3 server in proxy mode.
  */
 public class MavenResolverIT {
-    private static final String REMOTE_PATH = "commons-cli/commons-cli/1.4/commons-cli-1.4.jar";
-    private static final String LOCAL_PATH = "commons-cli-1.4.jar";
+    static final String REMOTE_PATH = "commons-cli/commons-cli/1.4/commons-cli-1.4.jar";
+    static final String LOCAL_PATH = "commons-cli-1.4.jar";
 
     private static GenericContainer<?> caddyProxy;
     private static File tempFile;
@@ -53,7 +53,7 @@ public class MavenResolverIT {
     public void testTransporterAuth() throws Exception {
         final byte[] data = testTransporter("https://demo:demo@localhost:7444/maven2");
         assertNotEquals(null, data);
-        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] local = getCommonsJar();
         assertArrayEquals(local, data);
     }
 
@@ -79,7 +79,7 @@ public class MavenResolverIT {
     public void testTransporterAnon() throws Exception {
         final byte[] data = testTransporter("https://localhost:7443/maven2");
         assertNotEquals(null, data);
-        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] local = getCommonsJar();
         assertArrayEquals(local, data);
     }
 
@@ -87,7 +87,7 @@ public class MavenResolverIT {
     public void testAnonTransporterSuccess() throws Exception {
         final byte[] data = testTransporter("https://demo:demo@localhost:7443/maven2");
         assertNotNull(data);
-        final byte[] local = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] local = getCommonsJar();
         assertArrayEquals(local, data);
     }
 
@@ -132,7 +132,7 @@ public class MavenResolverIT {
         final HttpClient client = new HttpClient(transport);
         client.start();
         h3Client.getClientConnector().getSslContextFactory().setTrustAll(true);
-        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] srcData = getCommonsJar();
         final ContentResponse response = client.newRequest("https://localhost:7445/test1").
             method(HttpMethod.PUT).body(
                 new InputStreamRequestContent(new ByteArrayInputStream(srcData))
@@ -150,7 +150,7 @@ public class MavenResolverIT {
         resetPutServer();
         final HttpTransporterFactory factory = new HttpTransporterFactory();
         final PutTask task = new PutTask(URI.create("test1")).setListener(new TransportListener() {});
-        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] srcData = getCommonsJar();
         task.setDataBytes(srcData);
         try (final Transporter transporter = factory.newInstance(newSession(), newRepo(repo))) {
             transporter.put(task);
@@ -166,7 +166,7 @@ public class MavenResolverIT {
         resetPutServer();
         final HttpTransporterFactory factory = new HttpTransporterFactory();
         final PutTask task = new PutTask(URI.create("test1")).setListener(new TransportListener() {});
-        final byte[] srcData = getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
+        final byte[] srcData = getCommonsJar();
         task.setDataBytes(srcData);
         try (final Transporter transporter = factory.newInstance(newSession(), newRepo(repo))) {
             transporter.put(task);
@@ -209,14 +209,14 @@ public class MavenResolverIT {
         tempFile.delete();
     }
 
-    private static DefaultRepositorySystemSession newSession() {
+    static DefaultRepositorySystemSession newSession() {
         DefaultRepositorySystemSession session = new DefaultRepositorySystemSession();
         session.setLocalRepositoryManager(new TestLocalRepositoryManager());
         session.setConfigProperty(ConfigurationProperties.HTTPS_SECURITY_MODE, ConfigurationProperties.HTTPS_SECURITY_MODE_INSECURE);
         return session;
     }
 
-    private RemoteRepository newRepo(final String url) {
+    static RemoteRepository newRepo(final String url) {
         return new RemoteRepository.Builder("test", "default", url).build();
     }
 
@@ -225,5 +225,9 @@ public class MavenResolverIT {
         boolean deleted = tempFile.delete();
         assertEquals(0, result.getExitCode());
         assertTrue(deleted);
+    }
+
+    byte[] getCommonsJar() throws IOException {
+        return getClass().getClassLoader().getResourceAsStream(LOCAL_PATH).readAllBytes();
     }
 }
