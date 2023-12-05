@@ -25,7 +25,21 @@
 
   <name>Artipie Maven Artifact Resolver Transport HTTP3</name>
   <description>A transport implementation for repositories using HTTP3.</description>
-
+  <url>https://github.com/artipie/maven-resolver-http3-plugin</url>
+  <inceptionYear>2023</inceptionYear>
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://github.com/artipie/maven-resolver-http3-plugin/blob/master/LICENSE.txt</url>
+    </license>
+  </licenses>
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/artipie/maven-resolver-http3-plugin/issues</url>
+  </issueManagement>
+  <scm>
+    <url>https://github.com/artipie/maven-resolver-http3-plugin</url>
+  </scm>
   <properties>
     <Automatic-Module-Name>com.artipie.maven.resolver.transport.http3</Automatic-Module-Name>
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
@@ -130,6 +144,11 @@
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-io</artifactId>
+      <version>${jettyVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
       <version>${jettyVersion}</version>
     </dependency>
     <dependency>
