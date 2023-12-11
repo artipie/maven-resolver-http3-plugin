@@ -40,6 +40,28 @@
   <scm>
     <url>https://github.com/artipie/maven-resolver-http3-plugin</url>
   </scm>
+  <developers>
+    <developer>
+      <id>https://github.com/ChGen</id>
+      <name>Evgeny Chugunnyy</name>
+      <email>chgenn.x@gmail.com</email>
+      <organization>Artipie</organization>
+      <organizationUrl>https://www.artipie.com</organizationUrl>
+      <roles>
+        <role>maintainer</role>
+      </roles>
+    </developer>
+    <developer>
+      <id>https://github.com/olenagerasimova</id>
+      <name>Alena</name>
+      <email>olena.gerasimova@gmail.com</email>
+      <organization>Artipie</organization>
+      <organizationUrl>https://www.artipie.com</organizationUrl>
+      <roles>
+        <role>maintainer</role>
+      </roles>
+    </developer>
+  </developers>
   <properties>
     <Automatic-Module-Name>com.artipie.maven.resolver.transport.http3</Automatic-Module-Name>
     <Bundle-SymbolicName>${Automatic-Module-Name}</Bundle-SymbolicName>
