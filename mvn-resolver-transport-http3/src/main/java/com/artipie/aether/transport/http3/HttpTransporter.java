@@ -297,23 +297,23 @@ final class HttpTransporter extends AbstractTransporter {
             }).body(bodyContent).send(listener);
             final Response response = listener.get(this.connectTimeout, TimeUnit.MILLISECONDS);
             if (response.getStatus() >= 300) {
-                LOGGER.error(
+                LOGGER.debug(
                     "{} request error status {}, method={}, url={}",
                     version, response.getStatus(), method, url
                 );
                 throw new HttpResponseException(Integer.toString(response.getStatus()), response);
             }
-            LOGGER.info(
+            LOGGER.debug(
                 "{} request done, method={}, resp status={}, url={}", version, method, response.getStatus(), url
             );
             return new ImmutablePair<>(listener.getInputStream(), response.getHeaders());
         } catch (Exception ex) {
-            LOGGER.error(
+            LOGGER.debug(
                 "{} request error={}: {}, method={}, url={}", version,
                 ex.getClass(), ex.getMessage(), method, url
             );
             if (version == HttpVersion.HTTP_3 && ex instanceof TimeoutException) {
-                LOGGER.info("Repeat via HTTP/1.1 method={}, url={}", method, url);
+                LOGGER.debug("Repeat via HTTP/1.1 method={}, url={}", method, url);
                 return this.makeRequest(method, task, bodyContent, this.initOrGetHttpClient());
             }
             throw new HttpRequestException(ex.getMessage(), request);

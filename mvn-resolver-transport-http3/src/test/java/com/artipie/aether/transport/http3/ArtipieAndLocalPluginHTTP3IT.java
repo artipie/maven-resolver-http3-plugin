@@ -42,7 +42,8 @@ public class ArtipieAndLocalPluginHTTP3IT {
     private GenericContainer<?> artipie;
 
     private final Consumer<OutputFrame> artipieLog =
-        new Slf4jLogConsumer(LoggerFactory.getLogger(this.getClass())).withPrefix("ARTIPIE");
+        new Slf4jLogConsumer(LoggerFactory.getLogger("ArtipieAndLocalPluginHTTP3IT"))
+            .withPrefix("ARTIPIE");
 
     private Network net;
 
@@ -74,7 +75,7 @@ public class ArtipieAndLocalPluginHTTP3IT {
         this.putClasspathResourceToClient("com/example/maven-http3/maven-settings.xml", "/w/settings.xml");
         this.putClasspathResourceToClient("com/example/maven-http3/pom.xml", "/w/pom.xml");
         final Container.ExecResult exec = this.mavenClient.execInContainer(
-            "mvn", "install", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
+            "mvn", "install", "-X", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
         LOGGER.info(res);
