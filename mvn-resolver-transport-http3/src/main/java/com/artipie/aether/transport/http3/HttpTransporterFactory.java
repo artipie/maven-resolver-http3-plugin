@@ -90,7 +90,7 @@ public final class HttpTransporterFactory implements TransporterFactory {
             throws NoTransporterException {
         requireNonNull(session, "session cannot be null");
         requireNonNull(repository, "repository cannot be null");
-        System.err.println("Custom HttpTransporterFactory created!!!");
+        HttpTransporter.LOGGER.debug("Custom HttpTransporterFactory created!!!");
         try {
             return new HttpTransporter(extractors, repository, session);
         } catch (Exception e) {

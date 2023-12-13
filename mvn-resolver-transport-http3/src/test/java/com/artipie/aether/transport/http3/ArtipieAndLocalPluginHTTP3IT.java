@@ -35,14 +35,15 @@ import org.testcontainers.utility.MountableFile;
  */
 public class ArtipieAndLocalPluginHTTP3IT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ArtipieAndLocalPluginHTTP3IT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("ArtipieAndLocalPluginHTTP3IT");
 
     private GenericContainer<?> mavenClient;
 
     private GenericContainer<?> artipie;
 
     private final Consumer<OutputFrame> artipieLog =
-        new Slf4jLogConsumer(LoggerFactory.getLogger(this.getClass())).withPrefix("ARTIPIE");
+        new Slf4jLogConsumer(LoggerFactory.getLogger("ArtipieAndLocalPluginHTTP3IT"))
+            .withPrefix("ARTIPIE");
 
     private Network net;
 
@@ -74,7 +75,7 @@ public class ArtipieAndLocalPluginHTTP3IT {
         this.putClasspathResourceToClient("com/example/maven-http3/maven-settings.xml", "/w/settings.xml");
         this.putClasspathResourceToClient("com/example/maven-http3/pom.xml", "/w/pom.xml");
         final Container.ExecResult exec = this.mavenClient.execInContainer(
-            "mvn", "install", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
+            "mvn", "install", "-X", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
         LOGGER.info(res);
@@ -82,9 +83,9 @@ public class ArtipieAndLocalPluginHTTP3IT {
         MatcherAssert.assertThat(
             res,
             Matchers.stringContainsInOrder(
-                "BUILD SUCCESS",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar"
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
+                "BUILD SUCCESS"
             )
         );
     }
