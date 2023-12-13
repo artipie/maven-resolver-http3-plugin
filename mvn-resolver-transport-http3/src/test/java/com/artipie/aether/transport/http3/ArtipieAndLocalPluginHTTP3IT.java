@@ -35,7 +35,7 @@ import org.testcontainers.utility.MountableFile;
  */
 public class ArtipieAndLocalPluginHTTP3IT {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ArtipieAndLocalPluginHTTP3IT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger("ArtipieAndLocalPluginHTTP3IT");
 
     private GenericContainer<?> mavenClient;
 
@@ -82,9 +82,9 @@ public class ArtipieAndLocalPluginHTTP3IT {
         MatcherAssert.assertThat(
             res,
             Matchers.stringContainsInOrder(
-                "BUILD SUCCESS",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar"
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
+                "BUILD SUCCESS"
             )
         );
     }
