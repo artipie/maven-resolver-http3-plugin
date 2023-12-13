@@ -25,9 +25,6 @@ import org.testcontainers.utility.MountableFile;
  */
 public class ArtipieAndPluginFromCentralIT {
 
-    private static final Logger LOGGER =
-        LoggerFactory.getLogger(ArtipieAndPluginFromCentralIT.class);
-
     private GenericContainer<?> mavenClient;
 
     private GenericContainer<?> artipie;
@@ -82,7 +79,6 @@ public class ArtipieAndPluginFromCentralIT {
             "mvn", "install", "-X", "-DskipTests", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
-        LOGGER.info(res);
         MatcherAssert.assertThat("Maven install status is not successful", exec.getExitCode() == 0);
         MatcherAssert.assertThat(
             res,
@@ -107,7 +103,6 @@ public class ArtipieAndPluginFromCentralIT {
             "mvn", "install", "-X", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
-        LOGGER.info(res);
         MatcherAssert.assertThat("Maven install status is not successful", exec.getExitCode() == 0);
         MatcherAssert.assertThat(
             res,
@@ -137,7 +132,6 @@ public class ArtipieAndPluginFromCentralIT {
             "mvn", "install", "-X", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
-        LOGGER.info(res);
         MatcherAssert.assertThat("Maven install status is not successful", exec.getExitCode() == 0);
         MatcherAssert.assertThat(
             res,
