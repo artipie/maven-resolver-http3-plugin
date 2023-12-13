@@ -79,7 +79,7 @@ public class ArtipieAndPluginFromCentralIT {
         this.putClasspathResourceToClient("ArtipieAndPluginFromCentralIT/com/example/test-maven-profile/maven-settings.xml", "/w/settings.xml");
         this.putClasspathResourceToClient("ArtipieAndPluginFromCentralIT/com/example/test-maven-profile/pom.xml", "/w/pom.xml");
         final Container.ExecResult exec = this.mavenClient.execInContainer(
-            "mvn", "install", "-DskipTests", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
+            "mvn", "install", "-X", "-DskipTests", "-s", "settings.xml", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
         LOGGER.info(res);
@@ -88,10 +88,10 @@ public class ArtipieAndPluginFromCentralIT {
             res,
             Matchers.stringContainsInOrder(
                 "Downloaded from central: https://repo.maven.apache.org/maven2/com/artipie/maven/resolver/maven-resolver-transport-http3",
-                "BUILD SUCCESS",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
-                "Request over HTTP/1.1 done, method=GET, resp status=200, url=https://repo.maven.apache.org/maven2/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom"
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
+                "HTTP/1.1 request done, method=GET, resp status=200, url=https://repo.maven.apache.org/maven2/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom",
+                "BUILD SUCCESS"
             )
         );
     }
@@ -104,7 +104,7 @@ public class ArtipieAndPluginFromCentralIT {
     void buildsWithPomRepo() throws IOException, InterruptedException {
         this.putClasspathResourceToClient("ArtipieAndPluginFromCentralIT/com/example/test-pom-repo/pom.xml", "/w/pom.xml");
         final Container.ExecResult exec = this.mavenClient.execInContainer(
-            "mvn", "install", "-Daether.connector.https.securityMode=insecure"
+            "mvn", "install", "-X", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
         LOGGER.info(res);
@@ -113,10 +113,10 @@ public class ArtipieAndPluginFromCentralIT {
             res,
             Matchers.stringContainsInOrder(
                 "Downloaded from central: https://repo.maven.apache.org/maven2/com/artipie/maven/resolver/maven-resolver-transport-http3",
-                "BUILD SUCCESS",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
-                "Request over HTTP/1.1 done, method=GET, resp status=200, url=https://repo.maven.apache.org/maven2/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom"
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
+                "HTTP/1.1 request done, method=GET, resp status=200, url=https://repo.maven.apache.org/maven2/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom",
+                "BUILD SUCCESS"
             )
         );
     }
@@ -134,7 +134,7 @@ public class ArtipieAndPluginFromCentralIT {
     void buildsWithPomPluginRepo() throws IOException, InterruptedException {
         this.putClasspathResourceToClient("ArtipieAndPluginFromCentralIT/com/example/test-pom-plugin-repo/pom.xml", "/w/pom.xml");
         final Container.ExecResult exec = this.mavenClient.execInContainer(
-            "mvn", "install", "-Daether.connector.https.securityMode=insecure"
+            "mvn", "install", "-X", "-Daether.connector.https.securityMode=insecure"
         );
         String res = String.join("\n", exec.getStdout(), exec.getStderr());
         LOGGER.info(res);
@@ -143,10 +143,10 @@ public class ArtipieAndPluginFromCentralIT {
             res,
             Matchers.stringContainsInOrder(
                 "Downloaded from central: https://repo.maven.apache.org/maven2/com/artipie/maven/resolver/maven-resolver-transport-http3",
-                "BUILD SUCCESS",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
-                "Request over HTTP/3.0 done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom"
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/args4j/args4j/2.33/args4j-2.33.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/springframework/spring-web/6.1.0/spring-web-6.1.0.jar",
+                "HTTP/3.0 request done, method=GET, resp status=200, url=https://artipie:8091/my-maven-proxy/org/apache/maven/maven-archiver/3.6.0/maven-archiver-3.6.0.pom",
+                "BUILD SUCCESS"
             )
         );
     }
